@@ -1859,6 +1859,7 @@ function EventsSection({ personId }: { personId: string }) {
 // Gallery Page
 function GalleryPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [person, setPerson] = React.useState<any>(null);
   const [photos, setPhotos] = React.useState<any[]>([]);
   const [uploading, setUploading] = React.useState(false);
