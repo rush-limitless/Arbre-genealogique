@@ -1,0 +1,67 @@
+name: Bug Report
+description: Signaler un bug
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de signaler ce bug ! Remplissez les informations ci-dessous.
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du bug
+      description: Décrivez clairement le problème
+      placeholder: Le bug se produit quand...
+    validations:
+      required: true
+  
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      description: Comment reproduire le bug ?
+      placeholder: |
+        1. Aller sur...
+        2. Cliquer sur...
+        3. Voir l'erreur
+    validations:
+      required: true
+  
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      description: Que devrait-il se passer ?
+    validations:
+      required: true
+  
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportement actuel
+      description: Que se passe-t-il réellement ?
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Sévérité
+      options:
+        - Critique (bloque l'application)
+        - Majeur (fonctionnalité cassée)
+        - Mineur (gêne mineure)
+    validations:
+      required: true
+  
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environnement
+      description: Navigateur, OS, version Node.js...
+      placeholder: |
+        - OS: Ubuntu 24.04
+        - Navigateur: Chrome 120
+        - Node.js: 18.x
