@@ -27,6 +27,19 @@ export class MediaController {
     }
   }
 
+  async getByPerson(req: Request, res: Response, next: NextFunction) {
+    try {
+      const media = await mediaService.getByPerson(req.params.personId);
+
+      res.json({
+        success: true,
+        data: media
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await mediaService.delete(req.params.id);

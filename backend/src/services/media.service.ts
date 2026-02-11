@@ -11,6 +11,13 @@ const prisma = new PrismaClient();
 export class MediaService {
   private uploadDir = './uploads';
 
+  async getByPerson(personId: string) {
+    return prisma.media.findMany({
+      where: { personId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async upload(file: any, data: any) {
     // Créer le dossier uploads s'il n'existe pas
     await fs.mkdir(this.uploadDir, { recursive: true });

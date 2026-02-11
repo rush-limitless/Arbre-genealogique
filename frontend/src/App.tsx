@@ -1854,15 +1854,15 @@ function GalleryPage() {
 
   React.useEffect(() => {
     if (id) {
+      // Charger la personne
       fetch(`http://localhost:3000/api/persons/${id}`)
         .then(r => r.json())
-        .then(data => {
-          setPerson(data.data);
-          // Simuler plusieurs photos (en production, vient de l'API)
-          setPhotos(data.data.profilePhotoUrl ? [
-            { id: 1, url: data.data.profilePhotoUrl, title: 'Photo de profil' }
-          ] : []);
-        });
+        .then(data => setPerson(data.data));
+      
+      // Charger les photos
+      fetch(`http://localhost:3000/api/media/person/${id}`)
+        .then(r => r.json())
+        .then(data => setPhotos(data.data || []));
     }
   }, [id]);
 
@@ -1925,15 +1925,24 @@ function GalleryPage() {
               {photos.map(photo => (
                 <div key={photo.id} className="relative group">
                   <img
-                    src={`http://localhost:3000${photo.url}`}
+                    src={`http://localhost:3000${photo.fileUrl}`}
                     alt={photo.title}
                     className="w-full h-48 object-cover rounded-lg"
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                    <button className="opacity-0 group-hover:opacity-100 px-4 py-2 bg-white text-gray-900 rounded-lg">
-                      Voir
-                    </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 rounded-b-lg">
+                    <p className="text-white text-sm truncate">{photo.title}</p>
                   </div>
+                  <button
+                    onClick={() => {
+                      if (confirm('Supprimer cette photo ?')) {
+                        fetch(`http://localhost:3000/api/media/${photo.id}`, { method: 'DELETE' })
+                          .then(() => window.location.reload());
+                      }
+                    }}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>

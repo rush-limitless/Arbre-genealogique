@@ -23,6 +23,7 @@ const upload = multer({
 });
 
 router.post('/upload', upload.single('photo'), controller.upload.bind(controller));
+router.get('/person/:personId', controller.getByPerson.bind(controller));
 router.delete('/:id', controller.delete.bind(controller));
 
 export default router;
