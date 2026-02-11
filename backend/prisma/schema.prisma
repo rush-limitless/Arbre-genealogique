@@ -1,0 +1,143 @@
+// SPEC-T-002: Base de Données - Schéma Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String?   @map("first_name")
+  lastName     String?   @map("last_name")
+  role         String    @default("editor")
+  personId     String?   @map("person_id")
+  person       Person?   @relation(fields: [personId], references: [id])
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  
+  createdPersons Person[] @relation("CreatedBy")
+  uploadedMedia  Media[]  @relation("UploadedBy")
+
+  @@map("users")
+}
+
+model Person {
+  id              String    @id @default(uuid())
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  maidenName      String?   @map("maiden_name")
+  gender          String
+  birthDate       DateTime? @map("birth_date") @db.Date
+  birthPlace      String?   @map("birth_place")
+  deathDate       DateTime? @map("death_date") @db.Date
+  deathPlace      String?   @map("death_place")
+  biography       String?   @db.Text
+  profession      String?
+  email           String?
+  phone           String?
+  profilePhotoUrl String?   @map("profile_photo_url")
+  isAlive         Boolean   @default(true) @map("is_alive")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdById     String?   @map("created_by")
+  createdBy       User?     @relation("CreatedBy", fields: [createdById], references: [id])
+
+  asParent       Relationship[] @relation("ParentRelation")
+  asChild        Relationship[] @relation("ChildRelation")
+  unionsPerson1  Union[]        @relation("Person1Union")
+  unionsPerson2  Union[]        @relation("Person2Union")
+  media          Media[]
+  events         Event[]
+  user           User[]
+
+  @@index([lastName, firstName])
+  @@index([birthDate])
+  @@map("persons")
+}
+
+model Relationship {
+  id               String   @id @default(uuid())
+  parentId         String   @map("parent_id")
+  childId          String   @map("child_id")
+  relationshipType String   @map("relationship_type")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  parent Person @relation("ParentRelation", fields: [parentId], references: [id])
+  child  Person @relation("ChildRelation", fields: [childId], references: [id])
+
+  @@index([parentId])
+  @@index([childId])
+  @@map("relationships")
+}
+
+model Union {
+  id        String    @id @default(uuid())
+  person1Id String    @map("person1_id")
+  person2Id String    @map("person2_id")
+  unionType String    @map("union_type")
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+  location  String?
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  person1 Person @relation("Person1Union", fields: [person1Id], references: [id])
+  person2 Person @relation("Person2Union", fields: [person2Id], references: [id])
+
+  @@index([person1Id, person2Id])
+  @@map("unions")
+}
+
+model Media {
+  id          String    @id @default(uuid())
+  personId    String?   @map("person_id")
+  mediaType   String    @map("media_type")
+  fileUrl     String    @map("file_url")
+  title       String?
+  description String?   @db.Text
+  dateTaken   DateTime? @map("date_taken") @db.Date
+  uploadedBy  String?   @map("uploaded_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  person Person?    @relation(fields: [personId], references: [id])
+  user   User?      @relation("UploadedBy", fields: [uploadedBy], references: [id])
+  tags   MediaTag[]
+
+  @@map("media")
+}
+
+model MediaTag {
+  id        String @id @default(uuid())
+  mediaId   String @map("media_id")
+  personId  String @map("person_id")
+  xPosition Float  @map("x_position")
+  yPosition Float  @map("y_position")
+
+  media Media @relation(fields: [mediaId], references: [id])
+
+  @@map("media_tags")
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  personId    String    @map("person_id")
+  eventType   String    @map("event_type")
+  title       String
+  description String?   @db.Text
+  eventDate   DateTime? @map("event_date") @db.Date
+  location    String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@map("events")
+}

@@ -1,0 +1,32 @@
+🎉 APPLICATION LANCÉE AVEC SUCCÈS !
+====================================
+
+✅ Backend : http://localhost:3000
+   - API : http://localhost:3000/api
+   - Health : http://localhost:3000/health
+   - PID : 175307
+
+✅ Frontend : http://localhost:5173
+   - PID : 175393
+
+🌐 OUVREZ VOTRE NAVIGATEUR :
+   👉 http://localhost:5173
+
+📊 Base de données PostgreSQL : Active
+   - Database : arbre_genealogique
+   - User : arbre_user
+
+🛑 Pour arrêter l'application :
+   kill 175307 175393
+
+📝 Logs :
+   - Backend : backend/backend.log
+   - Frontend : frontend/frontend.log
+
+🎯 Fonctionnalités disponibles :
+   ✅ Créer des personnes
+   ✅ Rechercher
+   ✅ Voir les détails
+   ✅ Supprimer
+
+Bon développement ! 🚀
