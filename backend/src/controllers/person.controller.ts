@@ -41,6 +41,36 @@ export class PersonController {
     }
   }
 
+  async getAncestors(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const generations = parseInt(req.query.generations as string) || 10;
+      const ancestors = await personService.getAncestors(id, generations);
+
+      res.json({
+        success: true,
+        data: ancestors
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDescendants(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const generations = parseInt(req.query.generations as string) || 10;
+      const descendants = await personService.getDescendants(id, generations);
+
+      res.json({
+        success: true,
+        data: descendants
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const person = await personService.create(req.body);

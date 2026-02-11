@@ -1446,6 +1446,7 @@ function ReportsPage() {
   const [selectedPerson, setSelectedPerson] = React.useState('');
   const [reportType, setReportType] = React.useState<'descendants' | 'ancestors'>('descendants');
   const [results, setResults] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
     fetch('http://localhost:3000/api/persons')
@@ -1453,32 +1454,25 @@ function ReportsPage() {
       .then(data => setPersons(data.data.persons));
   }, []);
 
-  const generateReport = () => {
+  const generateReport = async () => {
     if (!selectedPerson) return;
     
-    const person = persons.find(p => p.id === selectedPerson);
-    if (!person) return;
-
-    if (reportType === 'descendants') {
-      const descendants: any[] = [];
-      const findDescendants = (personId: string, level: number = 0) => {
-        const p = persons.find(x => x.id === personId);
-        if (!p) return;
-        descendants.push({ ...p, level });
-        p.children?.forEach((child: any) => findDescendants(child.id, level + 1));
-      };
-      findDescendants(selectedPerson);
-      setResults(descendants);
-    } else {
-      const ancestors: any[] = [];
-      const findAncestors = (personId: string, level: number = 0) => {
-        const p = persons.find(x => x.id === personId);
-        if (!p) return;
-        ancestors.push({ ...p, level });
-        p.parents?.forEach((parent: any) => findAncestors(parent.id, level + 1));
-      };
-      findAncestors(selectedPerson);
-      setResults(ancestors);
+    setLoading(true);
+    try {
+      const endpoint = reportType === 'descendants' 
+        ? `http://localhost:3000/api/persons/${selectedPerson}/descendants`
+        : `http://localhost:3000/api/persons/${selectedPerson}/ancestors`;
+      
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      
+      if (data.success) {
+        setResults(data.data);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1513,17 +1507,18 @@ function ReportsPage() {
                 onChange={e => setReportType(e.target.value as any)}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="descendants">Descendants</option>
-                <option value="ancestors">Ancêtres</option>
+                <option value="descendants">👶 Descendants</option>
+                <option value="ancestors">👴 Ancêtres (Ascendants)</option>
               </select>
             </div>
             
             <div className="flex items-end">
               <button
                 onClick={generateReport}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={!selectedPerson || loading}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Générer le rapport
+                {loading ? 'Chargement...' : 'Générer le rapport'}
               </button>
             </div>
           </div>
@@ -1531,7 +1526,7 @@ function ReportsPage() {
           {results.length > 0 && (
             <div className="border-t dark:border-gray-700 pt-6">
               <h2 className="text-xl font-bold mb-4 dark:text-white">
-                {reportType === 'descendants' ? '👶 Descendants' : '👴 Ancêtres'} ({results.length})
+                {reportType === 'descendants' ? '👶 Descendants' : '👴 Ancêtres (Ascendants)'} ({results.length})
               </h2>
               <div className="space-y-2">
                 {results.map((person, idx) => (
@@ -1539,7 +1534,7 @@ function ReportsPage() {
                     key={idx}
                     to={`/person/${person.id}`}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                    style={{ paddingLeft: `${person.level * 2 + 1}rem` }}
+                    style={{ paddingLeft: `${person.generation * 2 + 1}rem` }}
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                       {person.profilePhotoUrl ? (
@@ -1551,7 +1546,8 @@ function ReportsPage() {
                     <div>
                       <div className="font-medium dark:text-white">{person.firstName} {person.lastName}</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Génération {person.level} • {person.birthDate && new Date(person.birthDate).getFullYear()}
+                        Génération {person.generation} • {person.birthDate && new Date(person.birthDate).getFullYear()}
+                        {person.age && ` • ${person.age} ans`}
                       </div>
                     </div>
                   </Link>

@@ -8,6 +8,8 @@ const controller = new PersonController();
 
 router.get('/', controller.getAll.bind(controller));
 router.get('/:id', controller.getById.bind(controller));
+router.get('/:id/ancestors', controller.getAncestors.bind(controller));
+router.get('/:id/descendants', controller.getDescendants.bind(controller));
 router.post('/', controller.create.bind(controller));
 router.put('/:id', controller.update.bind(controller));
 router.delete('/:id', controller.delete.bind(controller));

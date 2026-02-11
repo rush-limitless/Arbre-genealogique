@@ -187,6 +187,82 @@ export class PersonService {
     });
   }
 
+  async getAncestors(personId: string, maxGenerations: number = 10) {
+    const ancestors: any[] = [];
+    const visited = new Set<string>();
+
+    const fetchAncestors = async (id: string, generation: number) => {
+      if (generation > maxGenerations || visited.has(id)) return;
+      visited.add(id);
+
+      const person = await prisma.person.findUnique({
+        where: { id },
+        include: {
+          asChild: {
+            include: {
+              parent: true
+            }
+          }
+        }
+      });
+
+      if (!person || person.isDeleted) return;
+
+      if (generation > 0) {
+        ancestors.push({
+          ...person,
+          generation,
+          age: this.calculateAge(person.birthDate, person.deathDate)
+        });
+      }
+
+      for (const rel of person.asChild) {
+        await fetchAncestors(rel.parent.id, generation + 1);
+      }
+    };
+
+    await fetchAncestors(personId, 0);
+    return ancestors.sort((a, b) => b.generation - a.generation);
+  }
+
+  async getDescendants(personId: string, maxGenerations: number = 10) {
+    const descendants: any[] = [];
+    const visited = new Set<string>();
+
+    const fetchDescendants = async (id: string, generation: number) => {
+      if (generation > maxGenerations || visited.has(id)) return;
+      visited.add(id);
+
+      const person = await prisma.person.findUnique({
+        where: { id },
+        include: {
+          asParent: {
+            include: {
+              child: true
+            }
+          }
+        }
+      });
+
+      if (!person || person.isDeleted) return;
+
+      if (generation > 0) {
+        descendants.push({
+          ...person,
+          generation,
+          age: this.calculateAge(person.birthDate, person.deathDate)
+        });
+      }
+
+      for (const rel of person.asParent) {
+        await fetchDescendants(rel.child.id, generation + 1);
+      }
+    };
+
+    await fetchDescendants(personId, 0);
+    return descendants.sort((a, b) => a.generation - b.generation);
+  }
+
   private calculateAge(birthDate: Date | null, deathDate: Date | null): number | null {
     if (!birthDate) return null;
     
