@@ -199,8 +199,6 @@ function NavBar() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
-  const canGoBack = location.pathname !== '/' && window.history.length > 1;
-
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -226,15 +224,6 @@ function NavBar() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
               <Link to="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">🌳 Arbre Généalogique</Link>
-              {canGoBack && (
-                <button
-                  onClick={() => navigate(-1)}
-                  className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  title="Retour"
-                >
-                  ← Retour
-                </button>
-              )}
               <Link to="/" className={`px-3 py-2 rounded ${location.pathname === '/' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                 📊 Dashboard
               </Link>
