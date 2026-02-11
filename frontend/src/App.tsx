@@ -6,7 +6,6 @@ import ReactFlow, { Background, Controls, MiniMap, type Node, type Edge } from '
 import 'reactflow/dist/style.css';
 import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
-import { Sidebar } from './components/Sidebar';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -2263,7 +2262,6 @@ function LoginPage() {
 
 function App() {
   const { loading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
@@ -2271,33 +2269,25 @@ function App() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        <div className="flex-1 flex flex-col">
-          <header className="bg-white dark:bg-gray-800 shadow-sm p-4 lg:hidden">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-2xl"
-            >
-              ☰
-            </button>
-          </header>
-          
-          <main className="flex-1 p-6">
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<ListPage />} />
-              <Route path="/tree" element={<TreePage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/timeline" element={<TimelinePage />} />
-              <Route path="/stats" element={<StatsPage />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/export" element={<ExportPage />} />
-              <Route path="/person/new" element={<CreatePage />} />
-              <Route path="/person/:id/edit" element={<EditPage />} />
-              <Route path="/person/:id" element={<PersonDetailPage />} />
-              <Route path="/person/:id/gallery" element={<GalleryPage />} />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/list" element={<ListPage />} />
+        <Route path="/tree" element={<TreePage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/timeline" element={<TimelinePage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/map" element={<MapPage />} />
+        <Route path="/export" element={<ExportPage />} />
+        <Route path="/person/new" element={<CreatePage />} />
+        <Route path="/person/:id/edit" element={<EditPage />} />
+        <Route path="/person/:id" element={<PersonDetailPage />} />
+        <Route path="/person/:id/gallery" element={<GalleryPage />} />
+      </Routes>
+      <ToastContainer />
+    </BrowserRouter>
+  );
+}
             </Routes>
           </main>
         </div>
@@ -2310,7 +2300,6 @@ export default function Root() {
   return (
     <AuthProvider>
       <App />
-      <ToastContainer />
     </AuthProvider>
   );
 }
