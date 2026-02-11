@@ -1900,12 +1900,33 @@ function GalleryPage() {
     }
   };
 
+  const handleSetProfilePhoto = async (photoId: string, photoUrl: string) => {
+    try {
+      await fetch(`http://localhost:3000/api/persons/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profilePhotoUrl: photoUrl })
+      });
+      alert('Photo de profil mise à jour !');
+      window.location.reload();
+    } catch (error) {
+      alert('Erreur mise à jour');
+    }
+  };
+
   if (!person) return <div className="text-center py-12">Chargement...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
+        <button
+          onClick={() => navigate(`/person/${id}`)}
+          className="mb-4 px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+        >
+          ← Retour au profil
+        </button>
+        
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold dark:text-white">📸 Galerie de {person.firstName}</h1>
@@ -1943,17 +1964,29 @@ function GalleryPage() {
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 rounded-b-lg">
                     <p className="text-white text-sm truncate">{photo.title}</p>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (confirm('Supprimer cette photo ?')) {
-                        fetch(`http://localhost:3000/api/media/${photo.id}`, { method: 'DELETE' })
-                          .then(() => window.location.reload());
-                      }
-                    }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600"
-                  >
-                    ✕
-                  </button>
+                  
+                  {/* Boutons au survol */}
+                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleSetProfilePhoto(photo.id, photo.fileUrl)}
+                      className="w-8 h-8 bg-blue-500 text-white rounded-full hover:bg-blue-600 flex items-center justify-center"
+                      title="Définir comme photo de profil"
+                    >
+                      ⭐
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Supprimer cette photo ?')) {
+                          fetch(`http://localhost:3000/api/media/${photo.id}`, { method: 'DELETE' })
+                            .then(() => window.location.reload());
+                        }
+                      }}
+                      className="w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 flex items-center justify-center"
+                      title="Supprimer"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
