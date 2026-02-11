@@ -1379,25 +1379,42 @@ function MapPage() {
   const [locations, setLocations] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('http://localhost:3000/api/persons')
-      .then(r => r.json())
-      .then(data => {
-        const persons = data.data.persons;
-        setPersons(persons);
-        
-        const locs = persons
-          .filter((p: any) => p.birthPlace)
-          .reduce((acc: any[], p: any) => {
-            const existing = acc.find(l => l.place === p.birthPlace);
-            if (existing) {
-              existing.persons.push(p);
-            } else {
-              acc.push({ place: p.birthPlace, persons: [p] });
+    // Charger personnes et unions
+    Promise.all([
+      fetch('http://localhost:3000/api/persons').then(r => r.json()),
+      fetch('http://localhost:3000/api/unions').then(r => r.json())
+    ]).then(([personsData, unionsData]) => {
+      const persons = personsData.data.persons;
+      const unions = unionsData.data || [];
+      
+      setPersons(persons);
+      
+      // Extraire lieux d'habitation depuis les unions
+      const locs = unions
+        .filter((u: any) => u.location)
+        .reduce((acc: any[], u: any) => {
+          const existing = acc.find(l => l.place === u.location);
+          const person1 = persons.find((p: any) => p.id === u.person1Id);
+          const person2 = persons.find((p: any) => p.id === u.person2Id);
+          
+          if (existing) {
+            if (person1 && !existing.persons.find((p: any) => p.id === person1.id)) {
+              existing.persons.push(person1);
             }
-            return acc;
-          }, []);
-        setLocations(locs);
-      });
+            if (person2 && !existing.persons.find((p: any) => p.id === person2.id)) {
+              existing.persons.push(person2);
+            }
+          } else {
+            const personsInLocation = [person1, person2].filter(Boolean);
+            if (personsInLocation.length > 0) {
+              acc.push({ place: u.location, persons: personsInLocation });
+            }
+          }
+          return acc;
+        }, []);
+      
+      setLocations(locs);
+    });
   }, []);
 
   return (
@@ -1406,15 +1423,15 @@ function MapPage() {
       <main className="w-full px-6 py-8">
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold mb-6 dark:text-white">🗺️ Carte des Lieux de Naissance</h1>
+          <h1 className="text-2xl font-bold mb-6 dark:text-white">🗺️ Carte des Lieux d'Habitation</h1>
           
           <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 mb-6 text-center">
-            <div className="text-6xl mb-4">🌍</div>
+            <div className="text-6xl mb-4">🏠</div>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Carte interactive des lieux de naissance
+              Lieux d'habitation des familles
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500">
-              {locations.length} lieux différents • {persons.filter(p => p.birthPlace).length} personnes
+              {locations.length} lieux différents • {locations.reduce((sum, l) => sum + l.persons.length, 0)} personnes
             </p>
           </div>
 
