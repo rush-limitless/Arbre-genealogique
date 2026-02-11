@@ -10,6 +10,7 @@ interface Person {
   deathDate?: string;
   profilePhotoUrl?: string;
   gender?: string;
+  relations?: Array<{ type: string; relatedPersonId: string }>;
 }
 
 interface TreeBuilderProps {
@@ -20,6 +21,7 @@ interface TreeNode {
   person: Person;
   x: number;
   y: number;
+  generation: number;
 }
 
 export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
@@ -27,17 +29,46 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
   const [treeNodes, setTreeNodes] = React.useState<TreeNode[]>([]);
   const [draggedPerson, setDraggedPerson] = React.useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedNode, setSelectedNode] = React.useState<TreeNode | null>(null);
 
   // Paliers de générations
   const generations = [
-    { level: -3, label: 'Arrière-arrière-grands-parents', color: 'bg-purple-50' },
-    { level: -2, label: 'Arrière-grands-parents', color: 'bg-indigo-50' },
-    { level: -1, label: 'Grands-parents', color: 'bg-blue-50' },
-    { level: 0, label: 'Parents / Vous', color: 'bg-green-50' },
-    { level: 1, label: 'Enfants', color: 'bg-yellow-50' },
-    { level: 2, label: 'Petits-enfants', color: 'bg-orange-50' },
-    { level: 3, label: 'Arrière-petits-enfants', color: 'bg-red-50' },
+    { level: -3, label: 'Arrière-arrière-grands-parents', color: 'bg-purple-50', yStart: 0 },
+    { level: -2, label: 'Arrière-grands-parents', color: 'bg-indigo-50', yStart: 140 },
+    { level: -1, label: 'Grands-parents', color: 'bg-blue-50', yStart: 280 },
+    { level: 0, label: 'Parents / Vous', color: 'bg-green-50', yStart: 420 },
+    { level: 1, label: 'Enfants', color: 'bg-yellow-50', yStart: 560 },
+    { level: 2, label: 'Petits-enfants', color: 'bg-orange-50', yStart: 700 },
+    { level: 3, label: 'Arrière-petits-enfants', color: 'bg-red-50', yStart: 840 },
   ];
+
+  // Calculer génération basée sur relations
+  const calculateGeneration = (person: Person): number => {
+    const hasParents = person.relations?.some(r => r.type === 'PARENT');
+    const hasChildren = person.relations?.some(r => r.type === 'CHILD');
+    
+    if (!hasParents && hasChildren) return 0;
+    if (hasParents && !hasChildren) return 1;
+    return 0;
+  };
+
+  // Auto-placement
+  const autoPlacePerson = (person: Person) => {
+    const generation = calculateGeneration(person);
+    const genConfig = generations.find(g => g.level === generation) || generations[3];
+    const existingInGen = treeNodes.filter(n => n.generation === generation);
+    const xOffset = existingInGen.length * 280 + 50;
+    
+    return { x: xOffset, y: genConfig.yStart + 50, generation };
+  };
+
+  // Charger auto les personnes avec relations
+  React.useEffect(() => {
+    const withRelations = persons.filter(p => p.relations?.length > 0);
+    if (withRelations.length > 0 && treeNodes.length === 0) {
+      setTreeNodes(withRelations.map(p => ({ person: p, ...autoPlacePerson(p) })));
+    }
+  }, [persons]);
 
   const filteredPersons = persons.filter(p => 
     !treeNodes.find(n => n.person.id === p.id) &&
@@ -56,8 +87,9 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    const generation = Math.floor(y / 140) - 3;
 
-    setTreeNodes([...treeNodes, { person: draggedPerson, x, y }]);
+    setTreeNodes([...treeNodes, { person: draggedPerson, x, y, generation }]);
     setDraggedPerson(null);
   };
 
@@ -185,7 +217,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
           {treeNodes.map((node, index) => (
             <div
               key={node.person.id}
-              className={`absolute bg-white rounded-lg shadow-lg border-2 ${getBorderColor(node.person)} p-3 w-56 cursor-move group`}
+              className={`absolute bg-white rounded-lg shadow-xl border-2 ${getBorderColor(node.person)} p-4 w-64 cursor-move group hover:shadow-2xl transition-shadow`}
               style={{ left: node.x, top: node.y }}
               draggable
               onDragStart={(e) => {
@@ -195,48 +227,65 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
               onDragEnd={(e) => {
                 e.currentTarget.style.opacity = '1';
                 const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                const newX = e.clientX - rect.left - 112;
-                const newY = e.clientY - rect.top - 40;
+                const newX = e.clientX - rect.left - 128;
+                const newY = e.clientY - rect.top - 60;
+                const generation = Math.floor(newY / 140) - 3;
                 
                 const updatedNodes = [...treeNodes];
-                updatedNodes[index] = { ...node, x: Math.max(0, newX), y: Math.max(0, newY) };
+                updatedNodes[index] = { ...node, x: Math.max(0, newX), y: Math.max(0, newY), generation };
                 setTreeNodes(updatedNodes);
               }}
+              onClick={() => setSelectedNode(node)}
             >
               <button
-                onClick={() => removeFromTree(node.person.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeFromTree(node.person.id);
+                }}
                 className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 z-10"
-                title="Retirer de l'arbre"
+                title="Retirer"
               >
                 ✕
               </button>
 
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {node.person.profilePhotoUrl ? (
-                    <img
-                      src={`http://localhost:3000${node.person.profilePhotoUrl}`}
-                      alt={node.person.firstName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  )}
+              {/* Grande photo */}
+              <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                {node.person.profilePhotoUrl ? (
+                  <img
+                    src={`http://localhost:3000${node.person.profilePhotoUrl}`}
+                    alt={node.person.firstName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Nom */}
+              <div className="text-center mb-3">
+                <div className="font-bold text-base">
+                  {node.person.firstName} {node.person.lastName}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate">
-                    {node.person.firstName} {node.person.lastName}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {getYearRange(node.person)}
-                  </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {getYearRange(node.person)}
                 </div>
               </div>
 
+              {/* Bouton créer lien */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedNode(node);
+                }}
+                className="w-full py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+              >
+                🔗 Créer un lien
+              </button>
+
               {node.person.deathDate && (
-                <div className="absolute -top-2 -left-2 w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
+                <div className="absolute -top-2 -left-2 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center shadow">
                   <span className="text-white text-xs">✝</span>
                 </div>
               )}
@@ -251,6 +300,39 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
           </span>
         </div>
       </div>
+
+      {/* Modal de création de lien */}
+      {selectedNode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedNode(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 dark:text-white">
+              Créer un lien pour {selectedNode.person.firstName}
+            </h3>
+            
+            <div className="space-y-3">
+              <button className="w-full py-3 bg-blue-500 text-white rounded hover:bg-blue-600 text-left px-4">
+                👨 Ajouter comme parent
+              </button>
+              <button className="w-full py-3 bg-green-500 text-white rounded hover:bg-green-600 text-left px-4">
+                👶 Ajouter comme enfant
+              </button>
+              <button className="w-full py-3 bg-pink-500 text-white rounded hover:bg-pink-600 text-left px-4">
+                💑 Ajouter comme conjoint
+              </button>
+              <button className="w-full py-3 bg-purple-500 text-white rounded hover:bg-purple-600 text-left px-4">
+                👥 Ajouter comme frère/sœur
+              </button>
+            </div>
+
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="w-full mt-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
