@@ -8,6 +8,7 @@ import 'reactflow/dist/style.css';
 import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
 import { TreeView } from './components/TreeView';
+import { HierarchicalTree } from './components/HierarchicalTree';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -473,36 +474,48 @@ function TreePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <NavBar />
-      <main className="w-full px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">🌳 Arbre Généalogique</h1>
-          <Link
-            to="/person/new"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md"
-          >
-            ➕ Ajouter une personne
-          </Link>
-        </div>
+      <main className="w-full h-[calc(100vh-64px)]">
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">🌳 Arbre Généalogique</h1>
+              <Link
+                to="/person/new"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                ➕ Ajouter
+              </Link>
+            </div>
+          </div>
 
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">⏳</div>
-            <p className="text-gray-600 dark:text-gray-400">Chargement de l'arbre...</p>
+          {/* Contenu */}
+          <div className="flex-1 overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">⏳</div>
+                  <p className="text-gray-600 dark:text-gray-400">Chargement...</p>
+                </div>
+              </div>
+            ) : persons.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+                  <div className="text-6xl mb-4">🌳</div>
+                  <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Aucune personne</p>
+                  <Link
+                    to="/person/new"
+                    className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Commencer
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <HierarchicalTree persons={persons} />
+            )}
           </div>
-        ) : persons.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="text-6xl mb-4">🌳</div>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Aucune personne dans l'arbre</p>
-            <Link
-              to="/person/new"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Commencer votre arbre généalogique
-            </Link>
-          </div>
-        ) : (
-          <TreeView persons={persons} />
-        )}
+        </div>
       </main>
     </div>
   );
