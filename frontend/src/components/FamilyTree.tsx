@@ -59,12 +59,17 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ persons }) => {
 
   return (
     <div className="w-full overflow-x-auto py-8">
-      <div className="min-w-max">
+      <div className="min-w-max relative">
         {generations.map(([genNumber, people], genIndex) => (
-          <div key={genNumber} className="mb-12">
+          <div key={genNumber} className="mb-16 relative">
             <div className="flex items-center justify-center gap-8 mb-4">
               {people.map((person, idx) => (
-                <div key={person.id} className="relative">
+                <div key={person.id} className="relative" style={{ zIndex: 10 }}>
+                  {/* Ligne verticale vers le haut (vers les parents) */}
+                  {person.parents && person.parents.length > 0 && genIndex > 0 && (
+                    <div className="absolute left-1/2 -translate-x-1/2 -top-16 w-0.5 h-16 bg-gray-400"></div>
+                  )}
+
                   {/* Carte personne */}
                   <div
                     onClick={() => navigate(`/person/${person.id}`)}
@@ -105,26 +110,40 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ persons }) => {
                     )}
                   </div>
 
-                  {/* Bouton + en dessous */}
-                  {genIndex < generations.length - 1 && (
-                    <div className="flex justify-center mt-2">
-                      <button
-                        onClick={() => navigate('/person/new')}
-                        className="w-8 h-8 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 hover:border-blue-400 transition-colors"
-                        title="Ajouter un enfant"
-                      >
-                        <span className="text-gray-600 text-lg">+</span>
-                      </button>
-                    </div>
+                  {/* Ligne verticale vers le bas (vers les enfants) */}
+                  {person.children && person.children.length > 0 && genIndex < generations.length - 1 && (
+                    <>
+                      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full w-0.5 h-8 bg-gray-400"></div>
+                      {/* Bouton + */}
+                      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-[calc(100%+32px)] z-20">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/person/new');
+                          }}
+                          className="w-8 h-8 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 hover:border-blue-400 transition-colors shadow-sm"
+                          title="Ajouter un enfant"
+                        >
+                          <span className="text-gray-600 text-lg">+</span>
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Ligne de connexion vers génération suivante */}
-            {genIndex < generations.length - 1 && (
-              <div className="flex justify-center">
-                <div className="w-px h-8 bg-gray-300"></div>
+            {/* Ligne horizontale reliant les frères et sœurs */}
+            {people.length > 1 && genIndex < generations.length - 1 && (
+              <div className="absolute left-0 right-0 top-[calc(100%-32px)] flex justify-center" style={{ zIndex: 1 }}>
+                <div 
+                  className="h-0.5 bg-gray-400" 
+                  style={{ 
+                    width: `${(people.length - 1) * 288 + 128}px`,
+                    marginLeft: 'auto',
+                    marginRight: 'auto'
+                  }}
+                ></div>
               </div>
             )}
           </div>
