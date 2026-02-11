@@ -578,6 +578,7 @@ function CreatePage() {
     gender: '',
     birthDate: '',
     birthPlace: '',
+    residencePlace: '',
     profession: '',
     biography: ''
   });
@@ -696,6 +697,16 @@ function CreatePage() {
                   className="w-full px-3 py-2 border rounded-lg"
                   value={formData.birthPlace}
                   onChange={(e) => setFormData({...formData, birthPlace: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Lieu de résidence</label>
+                <input 
+                  type="text" 
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={formData.residencePlace}
+                  onChange={(e) => setFormData({...formData, residencePlace: e.target.value})}
+                  placeholder="Ville actuelle ou dernière résidence"
                 />
               </div>
             </div>
@@ -845,6 +856,21 @@ function EditPage() {
                 onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-white">Lieu de résidence</label>
+              <input
+                name="residencePlace"
+                type="text"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                value={formData.residencePlace || ''}
+                onChange={handleChange}
+                placeholder="Ville actuelle ou dernière résidence"
+              />
+            </div>
+            <div></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1379,42 +1405,27 @@ function MapPage() {
   const [locations, setLocations] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    // Charger personnes et unions
-    Promise.all([
-      fetch('http://localhost:3000/api/persons').then(r => r.json()),
-      fetch('http://localhost:3000/api/unions').then(r => r.json())
-    ]).then(([personsData, unionsData]) => {
-      const persons = personsData.data.persons;
-      const unions = unionsData.data || [];
-      
-      setPersons(persons);
-      
-      // Extraire lieux d'habitation depuis les unions
-      const locs = unions
-        .filter((u: any) => u.location)
-        .reduce((acc: any[], u: any) => {
-          const existing = acc.find(l => l.place === u.location);
-          const person1 = persons.find((p: any) => p.id === u.person1Id);
-          const person2 = persons.find((p: any) => p.id === u.person2Id);
-          
-          if (existing) {
-            if (person1 && !existing.persons.find((p: any) => p.id === person1.id)) {
-              existing.persons.push(person1);
+    fetch('http://localhost:3000/api/persons')
+      .then(r => r.json())
+      .then(data => {
+        const persons = data.data.persons;
+        setPersons(persons);
+        
+        // Grouper par lieu de résidence
+        const locs = persons
+          .filter((p: any) => p.residencePlace)
+          .reduce((acc: any[], p: any) => {
+            const existing = acc.find(l => l.place === p.residencePlace);
+            if (existing) {
+              existing.persons.push(p);
+            } else {
+              acc.push({ place: p.residencePlace, persons: [p] });
             }
-            if (person2 && !existing.persons.find((p: any) => p.id === person2.id)) {
-              existing.persons.push(person2);
-            }
-          } else {
-            const personsInLocation = [person1, person2].filter(Boolean);
-            if (personsInLocation.length > 0) {
-              acc.push({ place: u.location, persons: personsInLocation });
-            }
-          }
-          return acc;
-        }, []);
-      
-      setLocations(locs);
-    });
+            return acc;
+          }, []);
+        
+        setLocations(locs);
+      });
   }, []);
 
   return (

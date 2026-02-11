@@ -38,6 +38,7 @@ model Person {
   birthPlace      String?   @map("birth_place")
   deathDate       DateTime? @map("death_date")
   deathPlace      String?   @map("death_place")
+  residencePlace  String?   @map("residence_place")
   biography       String?   
   profession      String?
   email           String?
