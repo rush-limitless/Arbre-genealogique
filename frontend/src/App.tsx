@@ -744,28 +744,38 @@ function TreePage() {
         </div>
 
         <div className="h-[600px] border rounded-lg bg-gray-50 dark:bg-gray-800">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={(changes) => {
-              const updatedNodes = nodes.map(node => {
-                const change = changes.find((c: any) => c.id === node.id && c.type === 'position');
-                if (change && 'position' in change) {
-                  return { ...node, position: change.position || node.position };
-                }
-                return node;
-              });
-              setNodes(updatedNodes);
-            }}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            minZoom={0.1}
-            maxZoom={2}
-          >
-            <Background />
-            <Controls />
-            <MiniMap />
-          </ReactFlow>
+          {nodes.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🌳</div>
+                <p className="text-lg mb-2">Aucune personne dans l'arbre</p>
+                <p className="text-sm">Activez le mode auto ou ajoutez des personnes manuellement</p>
+              </div>
+            </div>
+          ) : (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={(changes) => {
+                const updatedNodes = nodes.map(node => {
+                  const change = changes.find((c: any) => c.id === node.id && c.type === 'position');
+                  if (change && 'position' in change) {
+                    return { ...node, position: change.position || node.position };
+                  }
+                  return node;
+                });
+                setNodes(updatedNodes);
+              }}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              minZoom={0.1}
+              maxZoom={2}
+            >
+              <Background />
+              <Controls />
+              <MiniMap />
+            </ReactFlow>
+          )}
         </div>
       </main>
     </div>
