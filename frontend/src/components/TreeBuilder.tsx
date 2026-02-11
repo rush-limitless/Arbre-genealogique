@@ -28,6 +28,17 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
   const [draggedPerson, setDraggedPerson] = React.useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
 
+  // Paliers de générations
+  const generations = [
+    { level: -3, label: 'Arrière-arrière-grands-parents', color: 'bg-purple-50' },
+    { level: -2, label: 'Arrière-grands-parents', color: 'bg-indigo-50' },
+    { level: -1, label: 'Grands-parents', color: 'bg-blue-50' },
+    { level: 0, label: 'Parents / Vous', color: 'bg-green-50' },
+    { level: 1, label: 'Enfants', color: 'bg-yellow-50' },
+    { level: 2, label: 'Petits-enfants', color: 'bg-orange-50' },
+    { level: 3, label: 'Arrière-petits-enfants', color: 'bg-red-50' },
+  ];
+
   const filteredPersons = persons.filter(p => 
     !treeNodes.find(n => n.person.id === p.id) &&
     (p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,16 +141,32 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
       </div>
 
       {/* Zone de construction de l'arbre */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg relative overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg relative overflow-auto">
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="w-full h-full bg-gradient-to-br from-orange-50 via-pink-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative"
-          style={{ 
-            backgroundImage: 'radial-gradient(circle, #ddd 1px, transparent 1px)',
-            backgroundSize: '20px 20px'
-          }}
+          className="w-full min-h-full relative"
         >
+          {/* Paliers de générations */}
+          {generations.map((gen, idx) => (
+            <div
+              key={gen.level}
+              className={`${gen.color} dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 relative`}
+              style={{ height: '140px' }}
+            >
+              {/* Label de génération */}
+              <div className="absolute left-4 top-4 px-3 py-1 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-300 dark:border-gray-600">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {gen.label}
+                </span>
+              </div>
+
+              {/* Ligne de séparation avec indicateur */}
+              <div className="absolute left-0 bottom-0 w-full h-px bg-gray-300 dark:bg-gray-600"></div>
+            </div>
+          ))}
+
+          {/* Message si vide */}
           {treeNodes.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
@@ -148,12 +175,13 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
                   Glissez-déposez des personnes ici
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                  Construisez votre arbre comme un puzzle
+                  Construisez votre arbre génération par génération
                 </p>
               </div>
             </div>
           )}
 
+          {/* Personnes dans l'arbre */}
           {treeNodes.map((node, index) => (
             <div
               key={node.person.id}
@@ -177,7 +205,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
             >
               <button
                 onClick={() => removeFromTree(node.person.id)}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 z-10"
                 title="Retirer de l'arbre"
               >
                 ✕
@@ -217,7 +245,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
         </div>
 
         {/* Compteur */}
-        <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2">
+        <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 z-20">
           <span className="text-sm font-medium dark:text-white">
             📊 {treeNodes.length} personne{treeNodes.length > 1 ? 's' : ''} dans l'arbre
           </span>
