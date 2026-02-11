@@ -249,7 +249,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
               </button>
 
               {/* Grande photo */}
-              <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+              <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
                 {node.person.profilePhotoUrl ? (
                   <img
                     src={`http://localhost:3000${node.person.profilePhotoUrl}`}
@@ -257,8 +257,19 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  <svg className="w-14 h-14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" fill="url(#grad1)" />
+                    <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" fill="url(#grad2)" />
+                    <defs>
+                      <linearGradient id="grad1" x1="8" y1="4" x2="16" y2="12">
+                        <stop offset="0%" stopColor="#3B82F6" />
+                        <stop offset="100%" stopColor="#8B5CF6" />
+                      </linearGradient>
+                      <linearGradient id="grad2" x1="4" y1="13" x2="20" y2="20">
+                        <stop offset="0%" stopColor="#3B82F6" />
+                        <stop offset="100%" stopColor="#8B5CF6" />
+                      </linearGradient>
+                    </defs>
                   </svg>
                 )}
               </div>
