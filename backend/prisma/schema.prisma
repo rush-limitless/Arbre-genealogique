@@ -69,6 +69,7 @@ model Relationship {
   parentId         String   @map("parent_id")
   childId          String   @map("child_id")
   relationshipType String   @map("relationship_type")
+  parentRole       String?  @map("parent_role") @default("parent")
   isActive         Boolean  @default(true) @map("is_active")
   createdAt        DateTime @default(now()) @map("created_at")
 

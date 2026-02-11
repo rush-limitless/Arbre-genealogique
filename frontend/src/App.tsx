@@ -623,6 +623,7 @@ function ExportPage() {
 // CreatePage
 function CreatePage() {
   const navigate = useNavigate();
+  const [persons, setPersons] = React.useState<any[]>([]);
   const [formData, setFormData] = React.useState({
     firstName: '',
     lastName: '',
@@ -631,10 +632,18 @@ function CreatePage() {
     birthPlace: '',
     residencePlace: '',
     profession: '',
-    biography: ''
+    biography: '',
+    fatherId: '',
+    motherId: ''
   });
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<any>({});
+
+  React.useEffect(() => {
+    fetch('http://localhost:3000/api/persons')
+      .then(r => r.json())
+      .then(data => setPersons(data.data.persons || []));
+  }, []);
 
   const validateField = (name: string, value: string) => {
     const newErrors = { ...errors };
@@ -670,8 +679,38 @@ function CreatePage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        const personId = data.data.id;
+
+        // Créer relations père/mère
+        if (formData.fatherId) {
+          await fetch('http://localhost:3000/api/relationships', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              parentId: formData.fatherId,
+              childId: personId,
+              relationshipType: 'biological',
+              parentRole: 'father'
+            })
+          });
+        }
+
+        if (formData.motherId) {
+          await fetch('http://localhost:3000/api/relationships', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              parentId: formData.motherId,
+              childId: personId,
+              relationshipType: 'biological',
+              parentRole: 'mother'
+            })
+          });
+        }
+
         alert('Personne créée avec succès !');
-        navigate('/');
+        navigate('/list');
       } else {
         alert('Erreur lors de la création');
       }
@@ -729,6 +768,42 @@ function CreatePage() {
                 <option value="other">Autre</option>
               </select>
               {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
+            </div>
+
+            {/* Parents */}
+            <div className="grid grid-cols-2 gap-4 bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium mb-1">👨 Père</label>
+                <select
+                  name="fatherId"
+                  value={formData.fatherId}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Aucun</option>
+                  {persons.filter(p => p.gender === 'MALE').map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.firstName} {p.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">👩 Mère</label>
+                <select
+                  name="motherId"
+                  value={formData.motherId}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Aucune</option>
+                  {persons.filter(p => p.gender === 'FEMALE').map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.firstName} {p.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
