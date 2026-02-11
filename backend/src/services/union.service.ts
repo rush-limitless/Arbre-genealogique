@@ -6,6 +6,16 @@ import { AppError } from '../middleware/error.middleware';
 const prisma = new PrismaClient();
 
 export class UnionService {
+  async getAll() {
+    return prisma.union.findMany({
+      include: {
+        person1: { select: { id: true, firstName: true, lastName: true } },
+        person2: { select: { id: true, firstName: true, lastName: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async create(data: any) {
     if (!data.person1Id || !data.person2Id) {
       throw new AppError('Les deux personnes sont obligatoires', 400);

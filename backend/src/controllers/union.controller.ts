@@ -6,6 +6,19 @@ import { UnionService } from '../services/union.service';
 const unionService = new UnionService();
 
 export class UnionController {
+  async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const unions = await unionService.getAll();
+
+      res.json({
+        success: true,
+        data: unions
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const union = await unionService.create(req.body);
