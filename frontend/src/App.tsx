@@ -218,7 +218,7 @@ function NavBar() {
     <>
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 transition-colors">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
               <Link to="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">🌳 Arbre Généalogique</Link>
@@ -354,7 +354,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard' }]} />
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -628,7 +628,7 @@ function TreePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Arbre' }]} />
         
         <div className="flex justify-between items-center mb-4">
@@ -745,7 +745,7 @@ function ListPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Liste' }]} />
         <h1 className="text-3xl font-bold mb-6 dark:text-white">👥 Personnes</h1>
         <PersonList />
@@ -778,7 +778,7 @@ function ExportPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Export' }]} />
         <h1 className="text-3xl font-bold mb-6 dark:text-white">💾 Export</h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1015,7 +1015,7 @@ function EditPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[
           { label: 'Dashboard', path: '/' },
           { label: 'Liste', path: '/list' },
@@ -1539,7 +1539,7 @@ function ReportsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Rapports' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
@@ -1651,7 +1651,7 @@ function MapPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Carte' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -1773,7 +1773,7 @@ function StatsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Statistiques' }]} />
         <h1 className="text-3xl font-bold mb-8 dark:text-white">📊 Statistiques</h1>
 
@@ -1897,7 +1897,7 @@ function TimelinePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Timeline' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -2117,7 +2117,7 @@ function GalleryPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full px-6 py-8">
         <Breadcrumb items={[
           { label: 'Dashboard', path: '/' },
           { label: 'Liste', path: '/list' },
