@@ -9,6 +9,12 @@ import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
 import { TreeView } from './components/TreeView';
 import { HierarchicalTree } from './components/HierarchicalTree';
+import { CompactTree } from './components/CompactTree';
+import { ChronologicalTree } from './components/ChronologicalTree';
+import { InteractiveTree } from './components/InteractiveTree';
+import { CircularTree } from './components/CircularTree';
+import { HierarchicalList } from './components/HierarchicalList';
+import { MultiSpouseTree } from './components/MultiSpouseTree';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -441,10 +447,10 @@ function Dashboard() {
 }
 
 // TreePage
-// TreePage
 function TreePage() {
   const [persons, setPersons] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [viewMode, setViewMode] = React.useState<string>('hierarchical');
 
   React.useEffect(() => {
     const loadPersonsWithRelations = async () => {
@@ -471,14 +477,28 @@ function TreePage() {
     loadPersonsWithRelations();
   }, []);
 
+  const views = [
+    { id: 'hierarchical', name: 'Hiérarchique', icon: '🌳', component: HierarchicalTree },
+    { id: 'compact', name: 'Compact', icon: '🔍', component: CompactTree },
+    { id: 'chronological', name: 'Timeline', icon: '📅', component: ChronologicalTree },
+    { id: 'interactive', name: 'Interactif', icon: '🔄', component: InteractiveTree },
+    { id: 'circular', name: 'Circulaire', icon: '⭕', component: CircularTree },
+    { id: 'list', name: 'Liste', icon: '📋', component: HierarchicalList },
+    { id: 'multispouse', name: 'Multi-Épouses', icon: '💑', component: MultiSpouseTree },
+    { id: 'clusters', name: 'Clusters', icon: '🎯', component: TreeView },
+  ];
+
+  const currentView = views.find(v => v.id === viewMode) || views[0];
+  const ViewComponent = currentView.component;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <NavBar />
       <main className="w-full h-[calc(100vh-64px)]">
         <div className="h-full flex flex-col">
-          {/* Header */}
+          {/* Header avec sélecteur de vue */}
           <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-4">
               <h1 className="text-2xl font-bold text-gray-800 dark:text-white">🌳 Arbre Généalogique</h1>
               <Link
                 to="/person/new"
@@ -486,6 +506,24 @@ function TreePage() {
               >
                 ➕ Ajouter
               </Link>
+            </div>
+
+            {/* Sélecteur de vue */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {views.map(view => (
+                <button
+                  key={view.id}
+                  onClick={() => setViewMode(view.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                    viewMode === view.id
+                      ? 'bg-blue-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <span>{view.icon}</span>
+                  <span className="text-sm font-medium">{view.name}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -512,7 +550,7 @@ function TreePage() {
                 </div>
               </div>
             ) : (
-              <HierarchicalTree persons={persons} />
+              <ViewComponent persons={persons} />
             )}
           </div>
         </div>
