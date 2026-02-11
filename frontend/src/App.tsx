@@ -890,6 +890,7 @@ function EditPage() {
   const [formData, setFormData] = React.useState<any>({});
   const [persons, setPersons] = React.useState<any[]>([]);
   const [currentParents, setCurrentParents] = React.useState<any>({ father: null, mother: null });
+  const [currentChildren, setCurrentChildren] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -916,7 +917,16 @@ function EditPage() {
       // Charger toutes les personnes
       fetch('http://localhost:3000/api/persons')
         .then(r => r.json())
-        .then(data => setPersons(data.data.persons || []));
+        .then(data => {
+          const allPersons = data.data.persons || [];
+          setPersons(allPersons);
+          
+          // Extraire enfants actuels
+          const children = allPersons.filter((p: any) =>
+            p.relations?.some((r: any) => r.type === 'PARENT' && r.relatedPersonId === id)
+          );
+          setCurrentChildren(children.map((c: any) => c.id));
+        });
     }
   }, [id]);
 
@@ -926,6 +936,14 @@ function EditPage() {
 
   const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCurrentParents({ ...currentParents, [e.target.name]: e.target.value });
+  };
+
+  const toggleChild = (childId: string) => {
+    if (currentChildren.includes(childId)) {
+      setCurrentChildren(currentChildren.filter(c => c !== childId));
+    } else {
+      setCurrentChildren([...currentChildren, childId]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -973,6 +991,41 @@ function EditPage() {
             parentRole: 'mother'
           })
         });
+      }
+
+      // Gérer les enfants
+      const oldChildren = persons.filter(p =>
+        p.relations?.some((r: any) => r.type === 'PARENT' && r.relatedPersonId === id)
+      ).map((p: any) => p.id);
+
+      // Supprimer enfants retirés
+      for (const childId of oldChildren) {
+        if (!currentChildren.includes(childId)) {
+          const rel = persons.find((p: any) => p.id === childId)?.relations?.find((r: any) => 
+            r.type === 'PARENT' && r.relatedPersonId === id
+          );
+          if (rel?.id) {
+            await fetch(`http://localhost:3000/api/relationships/${rel.id}`, {
+              method: 'DELETE'
+            });
+          }
+        }
+      }
+
+      // Ajouter nouveaux enfants
+      for (const childId of currentChildren) {
+        if (!oldChildren.includes(childId)) {
+          await fetch('http://localhost:3000/api/relationships', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              parentId: id,
+              childId: childId,
+              relationshipType: 'biological',
+              parentRole: formData.gender === 'MALE' ? 'father' : 'mother'
+            })
+          });
+        }
       }
 
       navigate(`/person/${id}`);
@@ -1063,6 +1116,24 @@ function EditPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Enfants */}
+          <div className="bg-green-50 dark:bg-green-900 p-4 rounded-lg">
+            <label className="block text-sm font-medium mb-2 dark:text-white">👶 Enfants</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+              {persons.filter(p => p.id !== id).map(p => (
+                <label key={p.id} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={currentChildren.includes(p.id)}
+                    onChange={() => toggleChild(p.id)}
+                    className="rounded"
+                  />
+                  <span className="text-sm dark:text-white">{p.firstName} {p.lastName}</span>
+                </label>
+              ))}
             </div>
           </div>
 
