@@ -450,7 +450,9 @@ function Dashboard() {
 function TreePage() {
   const [persons, setPersons] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [viewMode, setViewMode] = React.useState<string>('hierarchical');
+  const [viewMode, setViewMode] = React.useState<string>(() => {
+    return localStorage.getItem('treeViewMode') || 'hierarchical';
+  });
 
   React.useEffect(() => {
     const loadPersonsWithRelations = async () => {
@@ -476,6 +478,11 @@ function TreePage() {
     
     loadPersonsWithRelations();
   }, []);
+
+  const handleViewChange = (newView: string) => {
+    setViewMode(newView);
+    localStorage.setItem('treeViewMode', newView);
+  };
 
   const views = [
     { id: 'hierarchical', name: 'Hiérarchique', icon: '🌳', component: HierarchicalTree },
@@ -513,7 +520,7 @@ function TreePage() {
               {views.map(view => (
                 <button
                   key={view.id}
-                  onClick={() => setViewMode(view.id)}
+                  onClick={() => handleViewChange(view.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
                     viewMode === view.id
                       ? 'bg-blue-500 text-white shadow-lg scale-105'
