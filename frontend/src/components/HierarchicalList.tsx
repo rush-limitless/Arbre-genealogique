@@ -21,6 +21,8 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
   const navigate = useNavigate();
   const [expandedNodes, setExpandedNodes] = React.useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = React.useState<'name' | 'birth' | 'death'>('name');
+  const [editingPerson, setEditingPerson] = React.useState<string | null>(null);
+  const [editData, setEditData] = React.useState<any>({});
 
   const getChildren = (personId: string) => {
     return persons.filter(p =>
@@ -64,17 +66,48 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
     return death ? `${birth} - ${death}` : `${birth}`;
   };
 
+  const startEdit = (person: Person) => {
+    setEditingPerson(person.id);
+    setEditData({
+      firstName: person.firstName,
+      lastName: person.lastName,
+      birthDate: person.birthDate?.split('T')[0] || '',
+      deathDate: person.deathDate?.split('T')[0] || '',
+      gender: person.gender,
+    });
+  };
+
+  const saveEdit = async (personId: string) => {
+    try {
+      await fetch(`http://localhost:3000/api/persons/${personId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData),
+      });
+      setEditingPerson(null);
+      window.location.reload();
+    } catch (error) {
+      alert('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingPerson(null);
+    setEditData({});
+  };
+
   const PersonRow: React.FC<{ person: Person; level: number }> = ({ person, level }) => {
     const children = getChildren(person.id);
     const isExpanded = expandedNodes.has(person.id);
     const hasChildren = children.length > 0;
+    const isEditing = editingPerson === person.id;
 
     return (
       <>
         <div
-          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-800 ${
+          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 ${
             level > 0 ? 'bg-gray-50 dark:bg-gray-800' : ''
-          }`}
+          } ${isEditing ? 'bg-blue-50 dark:bg-blue-900' : ''}`}
           style={{ paddingLeft: `${level * 32 + 12}px` }}
         >
           {/* Icône expansion */}
@@ -109,35 +142,104 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
           </div>
 
           {/* Nom */}
-          <div
-            className="flex-1 font-medium dark:text-white"
-            onClick={() => navigate(`/person/${person.id}`)}
-          >
-            {person.firstName} {person.lastName}
-          </div>
+          {isEditing ? (
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={editData.firstName}
+                onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                className="flex-1 px-2 py-1 border rounded dark:bg-gray-700 dark:text-white text-sm"
+                placeholder="Prénom"
+              />
+              <input
+                type="text"
+                value={editData.lastName}
+                onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                className="flex-1 px-2 py-1 border rounded dark:bg-gray-700 dark:text-white text-sm"
+                placeholder="Nom"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex-1 font-medium dark:text-white cursor-pointer"
+              onClick={() => navigate(`/person/${person.id}`)}
+            >
+              {person.firstName} {person.lastName}
+            </div>
+          )}
 
           {/* Dates */}
-          <div className="text-sm text-gray-600 dark:text-gray-400 w-32">
-            {getYearRange(person)}
-          </div>
+          {isEditing ? (
+            <div className="w-32 flex gap-1">
+              <input
+                type="date"
+                value={editData.birthDate}
+                onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })}
+                className="w-full px-1 py-1 border rounded dark:bg-gray-700 dark:text-white text-xs"
+              />
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600 dark:text-gray-400 w-32">
+              {getYearRange(person)}
+            </div>
+          )}
 
           {/* Genre */}
-          <div className="text-sm w-20">
-            {person.gender === 'MALE' && <span className="text-blue-500">♂ Homme</span>}
-            {person.gender === 'FEMALE' && <span className="text-pink-500">♀ Femme</span>}
-          </div>
+          {isEditing ? (
+            <select
+              value={editData.gender}
+              onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
+              className="text-sm w-20 px-1 py-1 border rounded dark:bg-gray-700 dark:text-white"
+            >
+              <option value="MALE">♂ Homme</option>
+              <option value="FEMALE">♀ Femme</option>
+              <option value="OTHER">Autre</option>
+            </select>
+          ) : (
+            <div className="text-sm w-20">
+              {person.gender === 'MALE' && <span className="text-blue-500">♂ Homme</span>}
+              {person.gender === 'FEMALE' && <span className="text-pink-500">♀ Femme</span>}
+            </div>
+          )}
 
           {/* Enfants */}
-          {hasChildren && (
+          {hasChildren && !isEditing && (
             <div className="text-xs text-gray-500 dark:text-gray-400 w-24">
               {children.length} enfant{children.length > 1 ? 's' : ''}
             </div>
           )}
+          {!hasChildren && !isEditing && <div className="w-24"></div>}
+          {isEditing && <div className="w-24"></div>}
 
-          {/* Statut */}
-          <div className="w-16 text-right">
-            {person.deathDate && (
-              <span className="text-gray-500 text-sm">✝</span>
+          {/* Actions */}
+          <div className="w-24 flex gap-1 justify-end">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => saveEdit(person.id)}
+                  className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                >
+                  ✕
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => startEdit(person)}
+                  className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                >
+                  ✏️
+                </button>
+                {person.deathDate && (
+                  <span className="text-gray-500 text-sm">✝</span>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -210,7 +312,7 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
         <div className="w-32">Dates</div>
         <div className="w-20">Genre</div>
         <div className="w-24">Enfants</div>
-        <div className="w-16 text-right">Statut</div>
+        <div className="w-24 text-right">Actions</div>
       </div>
 
       {/* Liste */}
