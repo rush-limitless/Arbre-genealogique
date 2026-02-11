@@ -4,6 +4,20 @@ Application web moderne et complète pour créer et gérer votre arbre généalo
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![React](https://img.shields.io/badge/React-18-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="screenshots/dashboard.png" alt="Dashboard" width="45%">
+  <img src="screenshots/tree.png" alt="Arbre" width="45%">
+  <img src="screenshots/person-detail.png" alt="Détail personne" width="45%">
+  <img src="screenshots/stats.png" alt="Statistiques" width="45%">
+</div>
+
+> 💡 **Note:** Ajoutez vos screenshots dans le dossier `screenshots/`
 
 ## ✨ Fonctionnalités
 
