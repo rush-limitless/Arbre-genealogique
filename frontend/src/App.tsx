@@ -7,7 +7,7 @@ import ReactFlow, { Background, Controls, MiniMap, type Node, type Edge } from '
 import 'reactflow/dist/style.css';
 import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
-import { TreeBuilder } from './components/TreeBuilder';
+import { TreeView } from './components/TreeView';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -505,7 +505,7 @@ function TreePage() {
             </Link>
           </div>
         ) : (
-          <TreeBuilder persons={persons} />
+          <TreeView persons={persons} />
         )}
       </main>
     </div>
