@@ -2288,13 +2288,6 @@ function App() {
     </BrowserRouter>
   );
 }
-            </Routes>
-          </main>
-        </div>
-      </div>
-    </BrowserRouter>
-  );
-}
 
 export default function Root() {
   return (
