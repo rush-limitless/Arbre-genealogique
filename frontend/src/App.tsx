@@ -449,6 +449,7 @@ function TreePage() {
   const [addMode, setAddMode] = React.useState(false);
   const [selectedPerson, setSelectedPerson] = React.useState('');
   const [autoMode, setAutoMode] = React.useState(false);
+  const [fullscreen, setFullscreen] = React.useState(false);
 
   React.useEffect(() => {
     fetch('http://localhost:3000/api/persons')
@@ -461,6 +462,19 @@ function TreePage() {
         }
       });
   }, [filter, autoMode]);
+
+  React.useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'f' || e.key === 'F') {
+        setFullscreen(prev => !prev);
+      }
+      if (e.key === 'Escape' && fullscreen) {
+        setFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [fullscreen]);
 
   const buildTree = (personsData: any[], filterType: string) => {
     let filtered = personsData;
@@ -572,6 +586,46 @@ function TreePage() {
 
   const availablePersons = persons.filter(p => !nodes.find(n => n.id === p.id));
 
+  if (fullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900">
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button
+            onClick={() => setFullscreen(false)}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-lg"
+            title="Quitter plein écran (F ou Esc)"
+          >
+            ✕ Quitter plein écran
+          </button>
+        </div>
+        <div className="h-screen">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={(changes) => {
+              const updatedNodes = nodes.map(node => {
+                const change = changes.find((c: any) => c.id === node.id && c.type === 'position');
+                if (change && 'position' in change) {
+                  return { ...node, position: change.position || node.position };
+                }
+                return node;
+              });
+              setNodes(updatedNodes);
+            }}
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            minZoom={0.1}
+            maxZoom={2}
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
@@ -581,6 +635,13 @@ function TreePage() {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold dark:text-white">🌳 Arbre</h1>
           <div className="flex gap-2">
+            <button
+              onClick={() => setFullscreen(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              title="Mode plein écran (F)"
+            >
+              ⛶ Plein écran
+            </button>
             <button
               onClick={() => setAutoMode(!autoMode)}
               className={`px-4 py-2 rounded-lg ${autoMode ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-white'}`}
