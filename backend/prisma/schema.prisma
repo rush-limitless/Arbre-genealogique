@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -34,11 +34,11 @@ model Person {
   lastName        String    @map("last_name")
   maidenName      String?   @map("maiden_name")
   gender          String
-  birthDate       DateTime? @map("birth_date") @db.Date
+  birthDate       DateTime? @map("birth_date")
   birthPlace      String?   @map("birth_place")
-  deathDate       DateTime? @map("death_date") @db.Date
+  deathDate       DateTime? @map("death_date")
   deathPlace      String?   @map("death_place")
-  biography       String?   @db.Text
+  biography       String?   
   profession      String?
   email           String?
   phone           String?
@@ -84,8 +84,8 @@ model Union {
   person1Id String    @map("person1_id")
   person2Id String    @map("person2_id")
   unionType String    @map("union_type")
-  startDate DateTime? @map("start_date") @db.Date
-  endDate   DateTime? @map("end_date") @db.Date
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
   location  String?
   status    String    @default("active")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -103,8 +103,8 @@ model Media {
   mediaType   String    @map("media_type")
   fileUrl     String    @map("file_url")
   title       String?
-  description String?   @db.Text
-  dateTaken   DateTime? @map("date_taken") @db.Date
+  description String?   
+  dateTaken   DateTime? @map("date_taken")
   uploadedBy  String?   @map("uploaded_by")
   createdAt   DateTime  @default(now()) @map("created_at")
 
@@ -132,8 +132,8 @@ model Event {
   personId    String    @map("person_id")
   eventType   String    @map("event_type")
   title       String
-  description String?   @db.Text
-  eventDate   DateTime? @map("event_date") @db.Date
+  description String?   
+  eventDate   DateTime? @map("event_date")
   location    String?
   createdAt   DateTime  @default(now()) @map("created_at")
 

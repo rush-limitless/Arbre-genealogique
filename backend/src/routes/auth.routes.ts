@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, firstName, lastName } = req.body;
     
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -19,12 +19,12 @@ router.post('/register', async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name, role: 'viewer' }
+      data: { email, passwordHash: hashedPassword, firstName, lastName, role: 'viewer' }
     });
     
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     
-    res.json({ success: true, data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token } });
+    res.json({ success: true, data: { user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role }, token } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Registration failed' });
   }
@@ -40,14 +40,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
     
-    const valid = await bcrypt.compare(password, user.password);
+    const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
     
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     
-    res.json({ success: true, data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token } });
+    res.json({ success: true, data: { user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role }, token } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Login failed' });
   }
@@ -68,7 +68,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
     
-    res.json({ success: true, data: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    res.json({ success: true, data: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role } });
   } catch (error) {
     res.status(401).json({ success: false, error: 'Invalid token' });
   }
