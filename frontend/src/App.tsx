@@ -3,11 +3,11 @@
 
 import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import React from 'react';
-// @ts-nocheck
 import ReactFlow, { Background, Controls, MiniMap, type Node, type Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
+import { FamilyTree } from './components/FamilyTree';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -442,25 +442,17 @@ function Dashboard() {
 }
 
 // TreePage
+// TreePage
 function TreePage() {
-  const [nodes, setNodes] = React.useState<Node[]>([]);
-  const [edges, setEdges] = React.useState<Edge[]>([]);
-  const [filter, setFilter] = React.useState('all');
   const [persons, setPersons] = React.useState<any[]>([]);
-  const [addMode, setAddMode] = React.useState(false);
-  const [selectedPerson, setSelectedPerson] = React.useState('');
-  const [autoMode, setAutoMode] = React.useState(false);
-  const [fullscreen, setFullscreen] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     const loadPersonsWithRelations = async () => {
       try {
-        console.log('🔄 Chargement des personnes...');
         const response = await fetch('http://localhost:3000/api/persons');
         const data = await response.json();
-        console.log('✅ Personnes chargées:', data.data.persons.length);
         
-        // Charger les détails de chaque personne pour avoir les relations
         const personsWithRelations = await Promise.all(
           data.data.persons.map(async (p: any) => {
             const detailResponse = await fetch(`http://localhost:3000/api/persons/${p.id}`);
@@ -469,321 +461,56 @@ function TreePage() {
           })
         );
         
-        console.log('✅ Relations chargées pour', personsWithRelations.length, 'personnes');
-        console.log('📊 Exemple:', personsWithRelations[0]?.firstName, '- Parents:', personsWithRelations[0]?.parents?.length, 'Enfants:', personsWithRelations[0]?.children?.length);
-        
         setPersons(personsWithRelations);
-        if (autoMode) {
-          console.log('🌳 Construction de l\'arbre en mode auto...');
-          buildTree(personsWithRelations, filter);
-        }
+        setLoading(false);
       } catch (error) {
-        console.error('❌ Erreur chargement:', error);
+        console.error('Erreur chargement:', error);
+        setLoading(false);
       }
     };
     
     loadPersonsWithRelations();
-  }, [filter, autoMode]);
-
-  React.useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'f' || e.key === 'F') {
-        setFullscreen(prev => !prev);
-      }
-      if (e.key === 'Escape' && fullscreen) {
-        setFullscreen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [fullscreen]);
-
-  const buildTree = (personsData: any[], filterType: string) => {
-    console.log('🔨 buildTree appelé avec', personsData.length, 'personnes');
-    
-    let filtered = personsData;
-    if (filterType === 'alive') filtered = personsData.filter((p: any) => !p.deathDate);
-    if (filterType === 'deceased') filtered = personsData.filter((p: any) => p.deathDate);
-    
-    console.log('📋 Après filtre:', filtered.length, 'personnes');
-    
-    const generationMap = new Map<string, number>();
-    const calculateGeneration = (personId: string, visited = new Set<string>()): number => {
-      if (visited.has(personId)) return 0;
-      visited.add(personId);
-      const person = filtered.find((p: any) => p.id === personId);
-      if (!person?.parents?.length) return 0;
-      return 1 + Math.max(...person.parents.map((p: any) => calculateGeneration(p.id, visited)));
-    };
-    
-    filtered.forEach((p: any) => {
-      generationMap.set(p.id, calculateGeneration(p.id));
-    });
-    
-    const generations = new Map<number, any[]>();
-    filtered.forEach((p: any) => {
-      const gen = generationMap.get(p.id) || 0;
-      if (!generations.has(gen)) generations.set(gen, []);
-      generations.get(gen)!.push(p);
-    });
-    
-    console.log('📊 Générations:', Array.from(generations.keys()).sort());
-    
-    const newNodes: Node[] = [];
-    generations.forEach((people, gen) => {
-      people.forEach((person: any, idx: number) => {
-        newNodes.push({
-          id: person.id,
-          type: 'default',
-          position: { x: idx * 200, y: gen * 150 },
-          data: {
-            label: (
-              <div className="p-2 bg-white rounded-lg border-2 border-blue-400 shadow-md min-w-[140px]">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {person.profilePhotoUrl ? (
-                      <img src={`http://localhost:3000${person.profilePhotoUrl}`} alt={person.firstName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-lg">👤</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm truncate">{person.firstName} {person.lastName}</div>
-                    {person.birthDate && (
-                      <div className="text-xs text-gray-600">★ {new Date(person.birthDate).getFullYear()}</div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => window.location.href = `/person/${person.id}`}
-                  className="w-full mt-1 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                >
-                  Voir
-                </button>
-              </div>
-            )
-          }
-        });
-      });
-    });
-    
-    console.log('✅ Nodes créés:', newNodes.length);
-    
-    const newEdges: Edge[] = [];
-    filtered.forEach((person: any) => {
-      person.parents?.forEach((parent: any) => {
-        newEdges.push({
-          id: `${parent.id}-${person.id}`,
-          source: parent.id,
-          target: person.id,
-          type: 'smoothstep',
-          animated: false,
-          style: { stroke: '#94a3b8', strokeWidth: 2 }
-        });
-      });
-    });
-    
-    console.log('✅ Edges créés:', newEdges.length);
-    
-    setNodes(newNodes);
-    setEdges(newEdges);
-  };
-
-  const addPersonToTree = () => {
-    if (!selectedPerson) {
-      alert('Veuillez sélectionner une personne');
-      return;
-    }
-    const person = persons.find(p => p.id === selectedPerson);
-    if (!person) {
-      alert('Personne non trouvée');
-      return;
-    }
-
-    const newNode: Node = {
-      id: person.id,
-      type: 'default',
-      position: { x: 100 + nodes.length * 50, y: 100 + nodes.length * 50 },
-      data: {
-        label: `${person.firstName} ${person.lastName}`
-      }
-    };
-
-    const updatedNodes = [...nodes, newNode];
-    setNodes(updatedNodes);
-    setSelectedPerson('');
-    setAddMode(false);
-    alert(`${person.firstName} ${person.lastName} ajouté(e) ! Total: ${updatedNodes.length} personnes`);
-  };
-
-  const availablePersons = persons.filter(p => !nodes.find(n => n.id === p.id));
-
-  if (fullscreen) {
-    return (
-      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900">
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <button
-            onClick={() => setFullscreen(false)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-lg"
-            title="Quitter plein écran (F ou Esc)"
-          >
-            ✕ Quitter plein écran
-          </button>
-        </div>
-        <div className="h-screen">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={(changes) => {
-              const updatedNodes = nodes.map(node => {
-                const change = changes.find((c: any) => c.id === node.id && c.type === 'position');
-                if (change && 'position' in change) {
-                  return { ...node, position: change.position || node.position };
-                }
-                return node;
-              });
-              setNodes(updatedNodes);
-            }}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            minZoom={0.1}
-            maxZoom={2}
-          >
-            <Background />
-            <Controls />
-            <MiniMap />
-          </ReactFlow>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
         <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Arbre' }]} />
         
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold dark:text-white">🌳 Arbre</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFullscreen(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              title="Mode plein écran (F)"
-            >
-              ⛶ Plein écran
-            </button>
-            <button
-              onClick={() => setAutoMode(!autoMode)}
-              className={`px-4 py-2 rounded-lg ${autoMode ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-white'}`}
-            >
-              {autoMode ? '🤖 Mode auto' : '👤 Mode manuel'}
-            </button>
-            {autoMode && (
-              <select
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="all">Tous</option>
-                <option value="alive">Vivants</option>
-                <option value="deceased">Décédés</option>
-              </select>
-            )}
-            {!autoMode && (
-              <button
-                onClick={() => setAddMode(!addMode)}
-                className={`px-4 py-2 rounded-lg ${addMode ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-white'}`}
-              >
-                {addMode ? '✓ Mode ajout' : '➕ Ajouter personne'}
-              </button>
-            )}
-          </div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">🌳 Arbre Généalogique</h1>
+          <Link
+            to="/person/new"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md"
+          >
+            ➕ Ajouter une personne
+          </Link>
         </div>
 
-        {addMode && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900 rounded-lg border border-green-200 dark:border-green-700">
-            <div className="flex gap-3 items-center">
-              <select
-                value={selectedPerson}
-                onChange={e => setSelectedPerson(e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Sélectionner une personne... ({availablePersons.length} disponibles)</option>
-                {availablePersons.map(p => (
-                  <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
-                ))}
-              </select>
-              <button
-                onClick={addPersonToTree}
-                disabled={!selectedPerson}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Ajouter à l'arbre
-              </button>
-              <button
-                onClick={() => setAddMode(false)}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg"
-              >
-                Annuler
-              </button>
-            </div>
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">⏳</div>
+            <p className="text-gray-600 dark:text-gray-400">Chargement de l'arbre...</p>
           </div>
+        ) : persons.length === 0 ? (
+          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div className="text-6xl mb-4">🌳</div>
+            <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Aucune personne dans l'arbre</p>
+            <Link
+              to="/person/new"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Commencer votre arbre généalogique
+            </Link>
+          </div>
+        ) : (
+          <FamilyTree persons={persons} />
         )}
-
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700">
-          <p className="text-sm dark:text-white">
-            📊 Personnes dans l'arbre: <strong>{nodes.length}</strong>
-            {nodes.length > 0 && (
-              <span className="ml-2">
-                ({nodes.map(n => persons.find(p => p.id === n.id)?.firstName).filter(Boolean).join(', ')})
-              </span>
-            )}
-          </p>
-        </div>
-
-        <div className="h-[600px] border rounded-lg bg-gray-50 dark:bg-gray-800">
-          {nodes.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🌳</div>
-                <p className="text-lg mb-2">Aucune personne dans l'arbre</p>
-                <p className="text-sm">Activez le mode auto ou ajoutez des personnes manuellement</p>
-              </div>
-            </div>
-          ) : (
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={(changes) => {
-                const updatedNodes = nodes.map(node => {
-                  const change = changes.find((c: any) => c.id === node.id && c.type === 'position');
-                  if (change && 'position' in change) {
-                    return { ...node, position: change.position || node.position };
-                  }
-                  return node;
-                });
-                setNodes(updatedNodes);
-              }}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              minZoom={0.1}
-              maxZoom={2}
-            >
-              <Background />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
-          )}
-        </div>
       </main>
     </div>
   );
 }
-
-// HomePage with person list
-// ListPage (renamed from HomePage)
 function ListPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
