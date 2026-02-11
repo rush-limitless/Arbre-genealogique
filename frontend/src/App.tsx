@@ -7,7 +7,7 @@ import ReactFlow, { Background, Controls, MiniMap, type Node, type Edge } from '
 import 'reactflow/dist/style.css';
 import { PersonList } from './components/PersonList';
 import { ToastContainer } from './components/Toast';
-import { FamilyTree } from './components/FamilyTree';
+import { TreeBuilder } from './components/TreeBuilder';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Auth Context
@@ -505,12 +505,14 @@ function TreePage() {
             </Link>
           </div>
         ) : (
-          <FamilyTree persons={persons} />
+          <TreeBuilder persons={persons} />
         )}
       </main>
     </div>
   );
 }
+
+// ListPage (renamed from HomePage)
 function ListPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
