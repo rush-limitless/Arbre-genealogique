@@ -68,11 +68,11 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ persons }) => {
                   {/* Carte personne */}
                   <div
                     onClick={() => navigate(`/person/${person.id}`)}
-                    className={`bg-white rounded-lg shadow-md border-2 ${getBorderColor(person)} p-3 w-56 cursor-pointer hover:shadow-lg transition-shadow relative`}
+                    className={`bg-white rounded-lg shadow-md border-2 ${getBorderColor(person)} p-4 w-64 cursor-pointer hover:shadow-lg transition-shadow relative`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       {/* Photo */}
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-gray-300">
                         {person.profilePhotoUrl ? (
                           <img
                             src={`http://localhost:3000${person.profilePhotoUrl}`}
@@ -80,18 +80,18 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ persons }) => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-2xl">
-                            {person.gender === 'male' ? '👨' : person.gender === 'female' ? '👩' : '👤'}
-                          </span>
+                          <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                          </svg>
                         )}
                       </div>
                       
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm truncate">
+                        <div className="font-semibold text-base truncate">
                           {person.firstName} {person.lastName}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-sm text-gray-600">
                           {getYearRange(person)}
                         </div>
                       </div>
