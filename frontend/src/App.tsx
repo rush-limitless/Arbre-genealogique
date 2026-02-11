@@ -453,15 +453,30 @@ function TreePage() {
   const [fullscreen, setFullscreen] = React.useState(false);
 
   React.useEffect(() => {
-    fetch('http://localhost:3000/api/persons')
-      .then(r => r.json())
-      .then(data => {
-        const personsData = data.data.persons;
-        setPersons(personsData);
+    const loadPersonsWithRelations = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/persons');
+        const data = await response.json();
+        
+        // Charger les détails de chaque personne pour avoir les relations
+        const personsWithRelations = await Promise.all(
+          data.data.persons.map(async (p: any) => {
+            const detailResponse = await fetch(`http://localhost:3000/api/persons/${p.id}`);
+            const detailData = await detailResponse.json();
+            return detailData.data;
+          })
+        );
+        
+        setPersons(personsWithRelations);
         if (autoMode) {
-          buildTree(personsData, filter);
+          buildTree(personsWithRelations, filter);
         }
-      });
+      } catch (error) {
+        console.error('Erreur chargement:', error);
+      }
+    };
+    
+    loadPersonsWithRelations();
   }, [filter, autoMode]);
 
   React.useEffect(() => {
