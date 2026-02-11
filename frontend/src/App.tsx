@@ -888,16 +888,35 @@ function EditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = React.useState<any>({});
+  const [persons, setPersons] = React.useState<any[]>([]);
+  const [currentParents, setCurrentParents] = React.useState<any>({ father: null, mother: null });
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (id) {
+      // Charger la personne
       fetch(`http://localhost:3000/api/persons/${id}`)
         .then(r => r.json())
         .then(data => {
           setFormData(data.data);
+          
+          // Extraire père et mère des relations
+          const relations = data.data.relations || [];
+          const fatherRel = relations.find((r: any) => r.type === 'PARENT' && r.parentRole === 'father');
+          const motherRel = relations.find((r: any) => r.type === 'PARENT' && r.parentRole === 'mother');
+          
+          setCurrentParents({
+            father: fatherRel?.relatedPersonId || '',
+            mother: motherRel?.relatedPersonId || ''
+          });
+          
           setLoading(false);
         });
+      
+      // Charger toutes les personnes
+      fetch('http://localhost:3000/api/persons')
+        .then(r => r.json())
+        .then(data => setPersons(data.data.persons || []));
     }
   }, [id]);
 
@@ -905,14 +924,57 @@ function EditPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentParents({ ...currentParents, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Mettre à jour la personne
       await fetch(`http://localhost:3000/api/persons/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+
+      // Supprimer anciennes relations parent
+      const existingRelations = formData.relations || [];
+      for (const rel of existingRelations) {
+        if (rel.type === 'PARENT') {
+          await fetch(`http://localhost:3000/api/relationships/${rel.id}`, {
+            method: 'DELETE'
+          });
+        }
+      }
+
+      // Créer nouvelles relations
+      if (currentParents.father) {
+        await fetch('http://localhost:3000/api/relationships', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            parentId: currentParents.father,
+            childId: id,
+            relationshipType: 'biological',
+            parentRole: 'father'
+          })
+        });
+      }
+
+      if (currentParents.mother) {
+        await fetch('http://localhost:3000/api/relationships', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            parentId: currentParents.mother,
+            childId: id,
+            relationshipType: 'biological',
+            parentRole: 'mother'
+          })
+        });
+      }
+
       navigate(`/person/${id}`);
     } catch (error) {
       alert('Erreur lors de la modification');
@@ -966,6 +1028,42 @@ function EditPage() {
               <option value="male">Homme</option>
               <option value="female">Femme</option>
             </select>
+          </div>
+
+          {/* Parents */}
+          <div className="grid grid-cols-2 gap-4 bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-white">👨 Père</label>
+              <select
+                name="father"
+                value={currentParents.father}
+                onChange={handleParentChange}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Aucun</option>
+                {persons.filter(p => p.gender === 'MALE' && p.id !== id).map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-white">👩 Mère</label>
+              <select
+                name="mother"
+                value={currentParents.mother}
+                onChange={handleParentChange}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Aucune</option>
+                {persons.filter(p => p.gender === 'FEMALE' && p.id !== id).map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
