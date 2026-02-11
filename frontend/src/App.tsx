@@ -357,8 +357,6 @@ function Dashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard' }]} />
-        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
             <div className="text-3xl mb-2">👥</div>
@@ -476,8 +474,6 @@ function TreePage() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Arbre' }]} />
-        
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 dark:text-white">🌳 Arbre Généalogique</h1>
           <Link
@@ -518,7 +514,6 @@ function ListPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Liste' }]} />
         <h1 className="text-3xl font-bold mb-6 dark:text-white">👥 Personnes</h1>
         <PersonList />
       </main>
@@ -551,7 +546,6 @@ function ExportPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Export' }]} />
         <h1 className="text-3xl font-bold mb-6 dark:text-white">💾 Export</h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button onClick={() => handleExport('gedcom')} className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
@@ -640,7 +634,6 @@ function CreatePage() {
     <div className="min-h-screen bg-gray-50">
       <NavBar />
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Liste', path: '/list' }, { label: 'Nouvelle personne' }]} />
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-6">Ajouter une personne</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -788,12 +781,6 @@ function EditPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[
-          { label: 'Dashboard', path: '/' },
-          { label: 'Liste', path: '/list' },
-          { label: `${formData.firstName} ${formData.lastName}`, path: `/person/${id}` },
-          { label: 'Éditer' }
-        ]} />
         <h1 className="text-3xl font-bold mb-6 dark:text-white">✏️ Éditer {formData.firstName} {formData.lastName}</h1>
         
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
@@ -1035,12 +1022,6 @@ function PersonDetailPage() {
     <div className="min-h-screen bg-gray-50">
       <NavBar />
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <Breadcrumb items={[
-          { label: 'Dashboard', path: '/' },
-          { label: 'Liste', path: '/list' },
-          { label: `${person.firstName} ${person.lastName}` }
-        ]} />
-        
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex justify-between items-start">
             <h1 className="text-3xl font-bold text-gray-900">
@@ -1312,7 +1293,6 @@ function ReportsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Rapports' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <h1 className="text-2xl font-bold mb-6 dark:text-white">📈 Rapports Généalogiques</h1>
@@ -1424,7 +1404,6 @@ function MapPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Carte' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-6 dark:text-white">🗺️ Carte des Lieux de Naissance</h1>
@@ -1546,7 +1525,6 @@ function StatsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Statistiques' }]} />
         <h1 className="text-3xl font-bold mb-8 dark:text-white">📊 Statistiques</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1670,7 +1648,6 @@ function TimelinePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dashboard', path: '/' }, { label: 'Timeline' }]} />
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-6">
@@ -1890,13 +1867,6 @@ function GalleryPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <NavBar />
       <main className="w-full px-6 py-8">
-        <Breadcrumb items={[
-          { label: 'Dashboard', path: '/' },
-          { label: 'Liste', path: '/list' },
-          { label: `${person.firstName} ${person.lastName}`, path: `/person/${id}` },
-          { label: 'Galerie' }
-        ]} />
-        
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold dark:text-white">📸 Galerie de {person.firstName}</h1>
