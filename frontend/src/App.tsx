@@ -455,8 +455,10 @@ function TreePage() {
   React.useEffect(() => {
     const loadPersonsWithRelations = async () => {
       try {
+        console.log('🔄 Chargement des personnes...');
         const response = await fetch('http://localhost:3000/api/persons');
         const data = await response.json();
+        console.log('✅ Personnes chargées:', data.data.persons.length);
         
         // Charger les détails de chaque personne pour avoir les relations
         const personsWithRelations = await Promise.all(
@@ -467,12 +469,16 @@ function TreePage() {
           })
         );
         
+        console.log('✅ Relations chargées pour', personsWithRelations.length, 'personnes');
+        console.log('📊 Exemple:', personsWithRelations[0]?.firstName, '- Parents:', personsWithRelations[0]?.parents?.length, 'Enfants:', personsWithRelations[0]?.children?.length);
+        
         setPersons(personsWithRelations);
         if (autoMode) {
+          console.log('🌳 Construction de l\'arbre en mode auto...');
           buildTree(personsWithRelations, filter);
         }
       } catch (error) {
-        console.error('Erreur chargement:', error);
+        console.error('❌ Erreur chargement:', error);
       }
     };
     
@@ -493,9 +499,13 @@ function TreePage() {
   }, [fullscreen]);
 
   const buildTree = (personsData: any[], filterType: string) => {
+    console.log('🔨 buildTree appelé avec', personsData.length, 'personnes');
+    
     let filtered = personsData;
     if (filterType === 'alive') filtered = personsData.filter((p: any) => !p.deathDate);
     if (filterType === 'deceased') filtered = personsData.filter((p: any) => p.deathDate);
+    
+    console.log('📋 Après filtre:', filtered.length, 'personnes');
     
     const generationMap = new Map<string, number>();
     const calculateGeneration = (personId: string, visited = new Set<string>()): number => {
@@ -516,6 +526,8 @@ function TreePage() {
       if (!generations.has(gen)) generations.set(gen, []);
       generations.get(gen)!.push(p);
     });
+    
+    console.log('📊 Générations:', Array.from(generations.keys()).sort());
     
     const newNodes: Node[] = [];
     generations.forEach((people, gen) => {
@@ -555,6 +567,8 @@ function TreePage() {
       });
     });
     
+    console.log('✅ Nodes créés:', newNodes.length);
+    
     const newEdges: Edge[] = [];
     filtered.forEach((person: any) => {
       person.parents?.forEach((parent: any) => {
@@ -568,6 +582,8 @@ function TreePage() {
         });
       });
     });
+    
+    console.log('✅ Edges créés:', newEdges.length);
     
     setNodes(newNodes);
     setEdges(newEdges);
