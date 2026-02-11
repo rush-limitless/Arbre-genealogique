@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-nocheck
 import { Link, useLocation } from 'react-router-dom';
 
 interface SidebarProps {

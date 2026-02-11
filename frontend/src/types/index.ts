@@ -60,7 +60,7 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
+  persons: T[];
   pagination: {
     page: number;
     limit: number;

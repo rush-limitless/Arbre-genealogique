@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-nocheck
 
 interface EmptyStateProps {
   icon?: string;

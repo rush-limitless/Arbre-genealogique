@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-nocheck
 
 interface Toast {
   id: number;

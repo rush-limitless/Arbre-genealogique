@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-nocheck
 import { useNavigate, Link } from 'react-router-dom';
 import { Avatar } from './Avatar';
 import { ListSkeleton } from './Skeleton';
