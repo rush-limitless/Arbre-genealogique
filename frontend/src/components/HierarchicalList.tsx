@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiRequestData, buildMediaUrl, jsonBody } from '../services/api';
+import { toast } from './Toast';
 
 interface Person {
   id: string;
@@ -15,56 +17,66 @@ interface Person {
 
 interface HierarchicalListProps {
   persons: Person[];
+  onSelectPerson?: (person: Person) => void;
 }
 
-export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) => {
+const getYearRange = (person: Person) => {
+  const birth = person.birthDate ? new Date(person.birthDate).getFullYear() : '?';
+  const death = person.deathDate ? new Date(person.deathDate).getFullYear() : '';
+  return death ? `${birth} - ${death}` : `${birth}`;
+};
+
+export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons, onSelectPerson }) => {
   const navigate = useNavigate();
   const [expandedNodes, setExpandedNodes] = React.useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = React.useState<'name' | 'birth' | 'death'>('name');
   const [editingPerson, setEditingPerson] = React.useState<string | null>(null);
   const [editData, setEditData] = React.useState<any>({});
+  const [localPersons, setLocalPersons] = React.useState<Person[]>(persons);
 
-  const getChildren = (personId: string) => {
-    return persons.filter(p =>
-      p.relations?.some(r => r.type === 'PARENT' && r.relatedPersonId === personId)
+  React.useEffect(() => {
+    setLocalPersons(persons);
+  }, [persons]);
+
+  const getChildren = React.useCallback((personId: string) => {
+    return localPersons.filter((person) =>
+      person.relations?.some((relation) => relation.type === 'PARENT' && relation.relatedPersonId === personId),
     );
-  };
+  }, [localPersons]);
 
-  const getRoots = () => {
-    return persons.filter(p => !p.relations?.some(r => r.type === 'PARENT'));
-  };
+  const getRoots = React.useCallback(() => {
+    return localPersons.filter((person) => !person.relations?.some((relation) => relation.type === 'PARENT'));
+  }, [localPersons]);
 
   const toggleExpand = (personId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(personId)) {
-      newExpanded.delete(personId);
-    } else {
-      newExpanded.add(personId);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  const sortPersons = (personsList: Person[]) => {
-    return [...personsList].sort((a, b) => {
-      if (sortBy === 'name') {
-        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-      } else if (sortBy === 'birth') {
-        const aDate = a.birthDate ? new Date(a.birthDate).getTime() : 0;
-        const bDate = b.birthDate ? new Date(b.birthDate).getTime() : 0;
-        return aDate - bDate;
+    setExpandedNodes((current) => {
+      const next = new Set(current);
+      if (next.has(personId)) {
+        next.delete(personId);
       } else {
-        const aDate = a.deathDate ? new Date(a.deathDate).getTime() : Infinity;
-        const bDate = b.deathDate ? new Date(b.deathDate).getTime() : Infinity;
-        return aDate - bDate;
+        next.add(personId);
       }
+      return next;
     });
   };
 
-  const getYearRange = (person: Person) => {
-    const birth = person.birthDate ? new Date(person.birthDate).getFullYear() : '?';
-    const death = person.deathDate ? new Date(person.deathDate).getFullYear() : '';
-    return death ? `${birth} - ${death}` : `${birth}`;
-  };
+  const sortPersons = React.useCallback((items: Person[]) => {
+    return [...items].sort((left, right) => {
+      if (sortBy === 'name') {
+        return `${left.firstName} ${left.lastName}`.localeCompare(`${right.firstName} ${right.lastName}`);
+      }
+
+      if (sortBy === 'birth') {
+        const leftDate = left.birthDate ? new Date(left.birthDate).getTime() : 0;
+        const rightDate = right.birthDate ? new Date(right.birthDate).getTime() : 0;
+        return leftDate - rightDate;
+      }
+
+      const leftDate = left.deathDate ? new Date(left.deathDate).getTime() : Number.POSITIVE_INFINITY;
+      const rightDate = right.deathDate ? new Date(right.deathDate).getTime() : Number.POSITIVE_INFINITY;
+      return leftDate - rightDate;
+    });
+  }, [sortBy]);
 
   const startEdit = (person: Person) => {
     setEditingPerson(person.id);
@@ -73,21 +85,29 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
       lastName: person.lastName,
       birthDate: person.birthDate?.split('T')[0] || '',
       deathDate: person.deathDate?.split('T')[0] || '',
-      gender: person.gender,
+      gender: person.gender || 'OTHER',
     });
   };
 
   const saveEdit = async (personId: string) => {
     try {
-      await fetch(`http://localhost:3000/api/persons/${personId}`, {
+      const payload = {
+        ...editData,
+        birthDate: editData.birthDate || null,
+        deathDate: editData.deathDate || null,
+      };
+
+      const updatedPerson = await apiRequestData(`/persons/${personId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
+        body: jsonBody(payload),
       });
+
+      setLocalPersons((current) => current.map((person) => (person.id === personId ? { ...person, ...updatedPerson } : person)));
       setEditingPerson(null);
-      window.location.reload();
+      setEditData({});
+      toast.success('Fiche mise a jour.');
     } catch (error) {
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Impossible de sauvegarder cette fiche.');
     }
   };
 
@@ -97,7 +117,7 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
   };
 
   const PersonRow: React.FC<{ person: Person; level: number }> = ({ person, level }) => {
-    const children = getChildren(person.id);
+    const children = sortPersons(getChildren(person.id));
     const isExpanded = expandedNodes.has(person.id);
     const hasChildren = children.length > 0;
     const isEditing = editingPerson === person.id;
@@ -105,153 +125,130 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
     return (
       <>
         <div
-          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 ${
-            level > 0 ? 'bg-gray-50 dark:bg-gray-800' : ''
-          } ${isEditing ? 'bg-blue-50 dark:bg-blue-900' : ''}`}
-          style={{ paddingLeft: `${level * 32 + 12}px` }}
+          className={`grid items-center gap-3 border-b border-[var(--color-line)] px-3 py-3 sm:grid-cols-[32px_minmax(0,1.5fr)_120px_110px_110px_90px] ${level > 0 ? 'bg-white/18 dark:bg-white/[0.02]' : ''} ${isEditing ? 'bg-[var(--color-accent-soft)]' : ''}`}
+          style={{ paddingLeft: `${level * 24 + 12}px` }}
         >
-          {/* Icône expansion */}
-          <div className="w-6 flex-shrink-0">
-            {hasChildren && (
+          <div className="flex items-center gap-2">
+            {hasChildren ? (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
                   toggleExpand(person.id);
                 }}
-                className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                className="app-button-ghost h-8 w-8 px-0 text-xs"
               >
-                {isExpanded ? '▼' : '▶'}
+                {isExpanded ? '-' : '+'}
+              </button>
+            ) : (
+              <div className="h-8 w-8"></div>
+            )}
+          </div>
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="tree-avatar h-9 w-9 shrink-0">
+              {person.profilePhotoUrl ? (
+                <img src={buildMediaUrl(person.profilePhotoUrl)} alt={person.firstName} className="h-full w-full object-cover" />
+              ) : (
+                <span className="font-display text-sm text-[var(--color-accent)]">
+                  {person.firstName?.[0]}
+                  {person.lastName?.[0]}
+                </span>
+              )}
+            </div>
+
+            {isEditing ? (
+              <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                <input
+                  type="text"
+                  value={editData.firstName}
+                  onChange={(event) => setEditData({ ...editData, firstName: event.target.value })}
+                  className="app-input py-2 text-sm"
+                  placeholder="Prenom"
+                />
+                <input
+                  type="text"
+                  value={editData.lastName}
+                  onChange={(event) => setEditData({ ...editData, lastName: event.target.value })}
+                  className="app-input py-2 text-sm"
+                  placeholder="Nom"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                onClick={() => {
+                  if (onSelectPerson) {
+                    onSelectPerson(person);
+                    return;
+                  }
+                  navigate(`/person/${person.id}`);
+                }}
+              >
+                <div className="truncate text-sm font-semibold text-[var(--color-text)]">
+                  {person.firstName} {person.lastName}
+                </div>
+                <div className="tree-meta text-xs">
+                  Niveau {level} {hasChildren ? `• ${children.length} enfant${children.length > 1 ? 's' : ''}` : ''}
+                </div>
               </button>
             )}
           </div>
 
-          {/* Photo */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {person.profilePhotoUrl ? (
-              <img
-                src={`http://localhost:3000${person.profilePhotoUrl}`}
-                alt={person.firstName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="8" r="4" fill="#3B82F6" />
-                <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" fill="#8B5CF6" />
-              </svg>
-            )}
-          </div>
-
-          {/* Nom */}
           {isEditing ? (
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={editData.firstName}
-                onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                className="flex-1 px-2 py-1 border rounded dark:bg-gray-700 dark:text-white text-sm"
-                placeholder="Prénom"
-              />
-              <input
-                type="text"
-                value={editData.lastName}
-                onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                className="flex-1 px-2 py-1 border rounded dark:bg-gray-700 dark:text-white text-sm"
-                placeholder="Nom"
-              />
-            </div>
+            <input
+              type="date"
+              value={editData.birthDate}
+              onChange={(event) => setEditData({ ...editData, birthDate: event.target.value })}
+              className="app-input py-2 text-sm"
+            />
           ) : (
-            <div
-              className="flex-1 font-medium dark:text-white cursor-pointer"
-              onClick={() => navigate(`/person/${person.id}`)}
-            >
-              {person.firstName} {person.lastName}
-            </div>
+            <div className="tree-meta text-sm">{getYearRange(person)}</div>
           )}
 
-          {/* Dates */}
           {isEditing ? (
-            <div className="w-32 flex gap-1">
-              <input
-                type="date"
-                value={editData.birthDate}
-                onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })}
-                className="w-full px-1 py-1 border rounded dark:bg-gray-700 dark:text-white text-xs"
-              />
-            </div>
+            <input
+              type="date"
+              value={editData.deathDate}
+              onChange={(event) => setEditData({ ...editData, deathDate: event.target.value })}
+              className="app-input py-2 text-sm"
+            />
           ) : (
-            <div className="text-sm text-gray-600 dark:text-gray-400 w-32">
-              {getYearRange(person)}
-            </div>
+            <div>{person.gender === 'MALE' ? <span className="tree-chip tree-chip-accent">Homme</span> : person.gender === 'FEMALE' ? <span className="tree-chip tree-chip-highlight">Femme</span> : <span className="tree-chip">Autre</span>}</div>
           )}
 
-          {/* Genre */}
           {isEditing ? (
-            <select
-              value={editData.gender}
-              onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
-              className="text-sm w-20 px-1 py-1 border rounded dark:bg-gray-700 dark:text-white"
-            >
-              <option value="MALE">♂ Homme</option>
-              <option value="FEMALE">♀ Femme</option>
+            <select value={editData.gender} onChange={(event) => setEditData({ ...editData, gender: event.target.value })} className="app-select py-2 text-sm">
+              <option value="MALE">Homme</option>
+              <option value="FEMALE">Femme</option>
               <option value="OTHER">Autre</option>
             </select>
           ) : (
-            <div className="text-sm w-20">
-              {person.gender === 'MALE' && <span className="text-blue-500">♂ Homme</span>}
-              {person.gender === 'FEMALE' && <span className="text-pink-500">♀ Femme</span>}
-            </div>
+            <div>{person.deathDate ? <span className="tree-chip tree-chip-danger">Decede</span> : <span className="tree-chip">Vivant</span>}</div>
           )}
 
-          {/* Enfants */}
-          {hasChildren && !isEditing && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 w-24">
-              {children.length} enfant{children.length > 1 ? 's' : ''}
-            </div>
-          )}
-          {!hasChildren && !isEditing && <div className="w-24"></div>}
-          {isEditing && <div className="w-24"></div>}
-
-          {/* Actions */}
-          <div className="w-24 flex gap-1 justify-end">
+          <div className="flex items-center justify-end gap-2">
             {isEditing ? (
               <>
-                <button
-                  onClick={() => saveEdit(person.id)}
-                  className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-                >
-                  ✓
+                <button type="button" onClick={() => saveEdit(person.id)} className="app-button-secondary px-4 py-2 text-xs uppercase tracking-[0.16em]">
+                  Sauver
                 </button>
-                <button
-                  onClick={cancelEdit}
-                  className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
-                >
-                  ✕
+                <button type="button" onClick={cancelEdit} className="app-button-ghost px-4 py-2 text-xs uppercase tracking-[0.16em]">
+                  Annuler
                 </button>
               </>
             ) : (
               <>
-                <button
-                  onClick={() => startEdit(person)}
-                  className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
-                >
-                  ✏️
+                <button type="button" onClick={() => startEdit(person)} className="app-button-ghost px-4 py-2 text-xs uppercase tracking-[0.16em]">
+                  Editer
                 </button>
-                {person.deathDate && (
-                  <span className="text-gray-500 text-sm">✝</span>
-                )}
               </>
             )}
           </div>
         </div>
 
-        {/* Enfants */}
-        {isExpanded && hasChildren && (
-          <>
-            {sortPersons(children).map(child => (
-              <PersonRow key={child.id} person={child} level={level + 1} />
-            ))}
-          </>
-        )}
+        {isExpanded && hasChildren && children.map((child) => <PersonRow key={child.id} person={child} level={level + 1} />)}
       </>
     );
   };
@@ -259,90 +256,61 @@ export const HierarchicalList: React.FC<HierarchicalListProps> = ({ persons }) =
   const roots = sortPersons(getRoots());
 
   return (
-    <div className="w-full h-full bg-white dark:bg-gray-900 flex flex-col">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold dark:text-white">📋 Liste Hiérarchique</h2>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {persons.length} personnes
+    <div className="tree-surface">
+      <div className="tree-toolbar space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="app-kicker mb-2">Arbre</div>
+            <h2 className="font-display text-2xl text-[var(--color-text)]">Liste hierarchique</h2>
           </div>
+          <div className="tree-chip">{localPersons.length} personnes</div>
         </div>
 
-        {/* Contrôles */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium dark:text-white">Trier par :</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-            >
-              <option value="name">Nom</option>
-              <option value="birth">Date de naissance</option>
-              <option value="death">Date de décès</option>
-            </select>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value as 'name' | 'birth' | 'death')} className="app-select max-w-[240px]">
+            <option value="name">Tri par nom</option>
+            <option value="birth">Tri par naissance</option>
+            <option value="death">Tri par deces</option>
+          </select>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                const allIds = new Set(persons.map(p => p.id));
-                setExpandedNodes(allIds);
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-            >
-              Tout déplier
-            </button>
-            <button
-              onClick={() => setExpandedNodes(new Set())}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 text-sm dark:text-white"
-            >
-              Tout replier
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setExpandedNodes(new Set(localPersons.map((person) => person.id)))}
+            className="app-button-secondary"
+          >
+            Tout deplier
+          </button>
+          <button type="button" onClick={() => setExpandedNodes(new Set())} className="app-button-ghost">
+            Tout replier
+          </button>
         </div>
       </div>
 
-      {/* En-têtes colonnes */}
-      <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-        <div className="w-6"></div>
-        <div className="w-8"></div>
-        <div className="flex-1">Nom</div>
-        <div className="w-32">Dates</div>
-        <div className="w-20">Genre</div>
-        <div className="w-24">Enfants</div>
-        <div className="w-24 text-right">Actions</div>
+      <div className="border-b border-[var(--color-line)] bg-white/20 px-3 py-3 text-xs font-semibold uppercase tracking-[0.2em] tree-meta sm:grid sm:grid-cols-[32px_minmax(0,1.5fr)_120px_110px_110px_90px] sm:gap-3">
+        <div></div>
+        <div>Personne</div>
+        <div>Dates</div>
+        <div>Genre</div>
+        <div>Statut</div>
+        <div className="text-right">Action</div>
       </div>
 
-      {/* Liste */}
       <div className="flex-1 overflow-auto">
         {roots.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📋</div>
-            <p className="text-gray-600 dark:text-gray-400">Aucune personne</p>
+          <div className="tree-empty m-4">
+            <div className="font-display text-3xl text-[var(--color-text)]">Aucune personne</div>
+            <p className="tree-meta mt-3 max-w-md text-sm leading-7">La liste hierarchique apparaitra des que des fiches seront disponibles.</p>
           </div>
         ) : (
-          <>
-            {roots.map(person => (
-              <PersonRow key={person.id} person={person} level={0} />
-            ))}
-          </>
+          roots.map((person) => <PersonRow key={person.id} person={person} level={0} />)
         )}
       </div>
 
-      {/* Footer stats */}
-      <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-          <div>
-            {roots.length} racine{roots.length > 1 ? 's' : ''}
-          </div>
-          <div>
-            {persons.filter(p => !p.deathDate).length} vivant{persons.filter(p => !p.deathDate).length > 1 ? 's' : ''}
-          </div>
-          <div>
-            {persons.filter(p => p.deathDate).length} décédé{persons.filter(p => p.deathDate).length > 1 ? 's' : ''}
-          </div>
+      <div className="tree-toolbar border-t border-b-0">
+        <div className="flex flex-wrap justify-between gap-3 text-sm tree-meta">
+          <div>{roots.length} racine{roots.length > 1 ? 's' : ''}</div>
+          <div>{localPersons.filter((person) => !person.deathDate).length} vivant{localPersons.filter((person) => !person.deathDate).length > 1 ? 's' : ''}</div>
+          <div>{localPersons.filter((person) => person.deathDate).length} decede{localPersons.filter((person) => person.deathDate).length > 1 ? 's' : ''}</div>
         </div>
       </div>
     </div>

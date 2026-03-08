@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildMediaUrl } from '../services/api';
 
 interface Person {
   id: string;
@@ -143,7 +144,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {person.profilePhotoUrl ? (
                     <img
-                      src={`http://localhost:3000${person.profilePhotoUrl}`}
+                      src={buildMediaUrl(person.profilePhotoUrl)}
                       alt={person.firstName}
                       className="w-full h-full object-cover"
                     />
@@ -252,7 +253,7 @@ export const TreeBuilder: React.FC<TreeBuilderProps> = ({ persons }) => {
               <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
                 {node.person.profilePhotoUrl ? (
                   <img
-                    src={`http://localhost:3000${node.person.profilePhotoUrl}`}
+                    src={buildMediaUrl(node.person.profilePhotoUrl)}
                     alt={node.person.firstName}
                     className="w-full h-full object-cover"
                   />

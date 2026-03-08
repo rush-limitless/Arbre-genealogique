@@ -12,23 +12,29 @@ interface ModalProps {
   variant?: 'danger' | 'warning' | 'info';
 }
 
-export function Modal({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirmer', cancelText = 'Annuler', variant = 'danger' }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'Confirmer',
+  cancelText = 'Annuler',
+  variant = 'danger',
+}: ModalProps) {
   if (!isOpen) return null;
 
-  const buttonClass = variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 
-                      variant === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700' : 
-                      'bg-blue-600 hover:bg-blue-700';
+  const confirmClass =
+    variant === 'danger' ? 'app-button-danger' : variant === 'warning' ? 'app-button-secondary' : 'app-button-primary';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center animate-fade-in" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 animate-fade-in" onClick={e => e.stopPropagation()}>
-        <h2 className="text-xl font-bold mb-4 dark:text-white">{title}</h2>
-        <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 px-4 backdrop-blur-md" onClick={onClose}>
+      <div className="app-panel w-full max-w-md px-6 py-6 sm:px-7 sm:py-7" onClick={(e) => e.stopPropagation()}>
+        <div className="app-chip mb-4 w-fit">{variant === 'danger' ? 'Confirmation' : 'Action'}</div>
+        <h2 className="font-display text-3xl text-[var(--color-text)]">{title}</h2>
+        <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">{message}</p>
+        <div className="mt-6 flex gap-3 justify-end">
+          <button onClick={onClose} className="app-button-ghost">
             {cancelText}
           </button>
           <button
@@ -36,7 +42,7 @@ export function Modal({ isOpen, onClose, onConfirm, title, message, confirmText 
               onConfirm();
               onClose();
             }}
-            className={`px-4 py-2 text-white rounded-lg ${buttonClass}`}
+            className={confirmClass}
           >
             {confirmText}
           </button>

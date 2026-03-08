@@ -11,17 +11,16 @@ interface EmptyStateProps {
   };
 }
 
-export function EmptyState({ icon = '📭', title, message, action }: EmptyStateProps) {
+export function EmptyState({ icon = 'PF', title, message, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="text-6xl mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold mb-2 dark:text-white">{title}</h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">{message}</p>
+    <div className="app-panel-muted flex flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] border border-[var(--color-line)] bg-[var(--color-accent-soft)] text-2xl font-semibold text-[var(--color-accent)]">
+        {icon}
+      </div>
+      <h3 className="font-display text-3xl text-[var(--color-text)]">{title}</h3>
+      <p className="mt-3 max-w-md text-sm leading-7 text-[var(--color-muted)]">{message}</p>
       {action && (
-        <button
-          onClick={action.onClick}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
+        <button onClick={action.onClick} className="app-button-primary mt-6">
           {action.label}
         </button>
       )}

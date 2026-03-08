@@ -1,12 +1,15 @@
 import React from 'react';
 // @ts-nocheck
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, SquarePen, Trash2, UserPlus, Users } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { ListSkeleton } from './Skeleton';
 import { toast } from './Toast';
 import { Modal } from './Modal';
 import { Badge } from './Badge';
 import { EmptyState } from './EmptyState';
+import { InlineError } from './PageState';
+import { apiGetData, apiRequestVoid, buildMediaUrl } from '../services/api';
 
 interface Person {
   id: string;
@@ -24,6 +27,7 @@ export function PersonList() {
   const [persons, setPersons] = React.useState<Person[]>([]);
   const [search, setSearch] = React.useState('');
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -34,53 +38,54 @@ export function PersonList() {
   }, []);
 
   const loadPersons = () => {
-    fetch('http://localhost:3000/api/persons')
-      .then(res => res.json())
-      .then(data => {
-        setPersons(data.data.persons);
+    setLoading(true);
+    setError(null);
+    apiGetData<any>('/persons')
+      .then((data) => {
+        setPersons(data.persons);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((requestError) => {
+        setError(requestError instanceof Error ? requestError.message : 'Impossible de charger la liste.');
+        setLoading(false);
+      });
   };
 
   const toggleSelect = (id: string) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
+    const next = new Set(selected);
+    if (next.has(id)) {
+      next.delete(id);
     } else {
-      newSelected.add(id);
+      next.add(id);
     }
-    setSelected(newSelected);
+    setSelected(next);
   };
+
+  const filtered = persons.filter(
+    (person) =>
+      person.firstName.toLowerCase().includes(search.toLowerCase()) ||
+      person.lastName.toLowerCase().includes(search.toLowerCase())
+  );
 
   const selectAll = () => {
     if (selected.size === filtered.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filtered.map(p => p.id)));
+      setSelected(new Set(filtered.map((person) => person.id)));
     }
   };
 
   const deleteSelected = async () => {
     try {
-      await Promise.all(
-        Array.from(selected).map(id =>
-          fetch(`http://localhost:3000/api/persons/${id}`, { method: 'DELETE' })
-        )
-      );
-      toast.success(`${selected.size} personne(s) supprimée(s)`);
+      await Promise.all(Array.from(selected).map((id) => apiRequestVoid(`/persons/${id}`, { method: 'DELETE' })));
+      toast.success(`${selected.size} personne(s) supprimee(s)`);
       setSelected(new Set());
       setSelectMode(false);
       loadPersons();
-    } catch (error) {
+    } catch (deleteError) {
       toast.error('Erreur lors de la suppression');
     }
   };
-
-  const filtered = persons.filter(p => 
-    p.firstName.toLowerCase().includes(search.toLowerCase()) ||
-    p.lastName.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <>
@@ -88,145 +93,142 @@ export function PersonList() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={deleteSelected}
-        title="Supprimer des personnes"
-        message={`Êtes-vous sûr de vouloir supprimer ${selected.size} personne(s) ? Cette action est irréversible.`}
+        title="Supprimer des fiches"
+        message={`Confirmez la suppression de ${selected.size} fiche(s). Cette action est irreversible.`}
         confirmText="Supprimer"
         cancelText="Annuler"
         variant="danger"
       />
-      
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setSelectMode(!selectMode);
-              setSelected(new Set());
-            }}
-            className={`px-4 py-2 rounded-lg ${selectMode ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
-          >
-            {selectMode ? '✓ Mode sélection' : 'Sélectionner'}
-          </button>
+
+      <section className="app-panel p-6 sm:p-7">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="app-kicker mb-2">Repertoire familial</p>
+            <h2 className="font-display text-3xl text-[var(--color-text)]">Naviguer dans les fiches</h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
+              Recherchez, selectionnez plusieurs personnes et basculez rapidement vers la creation ou l'edition.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setSelectMode(!selectMode);
+                setSelected(new Set());
+              }}
+              className={selectMode ? 'app-button-primary' : 'app-button-ghost'}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              {selectMode ? 'Mode selection actif' : 'Selectionner'}
+            </button>
+            <Link to="/person/new" className="app-button-primary gap-2">
+              <UserPlus className="h-4 w-4" />
+              Ajouter une personne
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
+          <div className="app-panel-muted flex items-center gap-3 px-4 py-3">
+            <Search className="h-4 w-4 text-[var(--color-accent)]" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom ou prenom..."
+              className="w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-muted)]"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           {selectMode && (
-            <>
-              <button
-                onClick={selectAll}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg"
-              >
-                {selected.size === filtered.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+            <div className="flex flex-wrap gap-3">
+              <button onClick={selectAll} className="app-button-ghost">
+                {selected.size === filtered.length ? 'Tout deselectionner' : 'Tout selectionner'}
               </button>
               {selected.size > 0 && (
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  🗑️ Supprimer ({selected.size})
+                <button onClick={() => setShowDeleteModal(true)} className="app-button-danger gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer ({selected.size})
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
-      </div>
 
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="🔍 Rechercher par nom..."
-          className="w-full px-4 py-3 border rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
+        {error && <div className="mt-6"><InlineError message={error} onRetry={loadPersons} /></div>}
 
-      {loading ? (
-        <ListSkeleton />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon="👥"
-          title="Aucune personne trouvée"
-          message={search ? `Aucun résultat pour "${search}"` : "Commencez à construire votre arbre généalogique en ajoutant votre première personne."}
-          action={{
-            label: "➕ Ajouter une personne",
-            onClick: () => navigate('/person/new')
-          }}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((person, idx) => (
-            <div
-              key={person.id}
-              className={`border rounded-lg p-4 bg-white dark:bg-gray-800 hover:shadow-lg cursor-pointer relative transition-all animate-fade-in ${
-                selected.has(person.id) ? 'ring-2 ring-blue-500' : ''
-              }`}
-              style={{ animationDelay: `${idx * 0.05}s` }}
-              onClick={() => selectMode ? toggleSelect(person.id) : navigate(`/person/${person.id}`)}
-            >
-              {selectMode && (
-                <div className="absolute top-2 right-2">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(person.id)}
-                    onChange={() => toggleSelect(person.id)}
-                    className="w-5 h-5"
-                    onClick={e => e.stopPropagation()}
-                  />
-                </div>
-              )}
-              {!selectMode && (
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/person/${person.id}/edit`);
-                    }}
-                    className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800"
-                    title="Éditer"
-                  >
-                    ✏️
-                  </button>
-                </div>
-              )}
-              <div className="flex items-start gap-3">
-                <Avatar
-                  firstName={person.firstName}
-                  lastName={person.lastName}
-                  photoUrl={person.profilePhotoUrl ? `http://localhost:3000${person.profilePhotoUrl}` : undefined}
-                  size="md"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg dark:text-white">{person.firstName} {person.lastName}</h3>
-                    {person.deathDate ? (
-                      <Badge variant="error">Décédé</Badge>
-                    ) : (
-                      <Badge variant="success">Vivant</Badge>
-                    )}
+        <div className="mt-6">
+          {loading ? (
+            <ListSkeleton />
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon="PF"
+              title="Aucune personne trouvee"
+              message={search ? `Aucun resultat pour "${search}".` : "Commencez a construire l'arbre en ajoutant votre premiere fiche."}
+              action={{
+                label: 'Ajouter une personne',
+                onClick: () => navigate('/person/new'),
+              }}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((person, idx) => (
+                <article
+                  key={person.id}
+                  className={`app-panel relative p-5 transition-all hover:-translate-y-0.5 ${selected.has(person.id) ? 'ring-2 ring-[var(--color-accent)]' : ''} animate-fade-in`}
+                  style={{ animationDelay: `${idx * 0.04}s` }}
+                  onClick={() => (selectMode ? toggleSelect(person.id) : navigate(`/person/${person.id}`))}
+                >
+                  {selectMode && (
+                    <div className="absolute right-4 top-4">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(person.id)}
+                        onChange={() => toggleSelect(person.id)}
+                        className="h-5 w-5 rounded border-[var(--color-line)]"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+
+                  {!selectMode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/person/${person.id}/edit`);
+                      }}
+                      className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/35 text-[var(--color-accent)] transition-all hover:bg-[var(--color-accent-soft)] dark:bg-white/5"
+                      title="Editer"
+                    >
+                      <SquarePen className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  <div className="flex items-start gap-4">
+                    <Avatar firstName={person.firstName} lastName={person.lastName} photoUrl={buildMediaUrl(person.profilePhotoUrl)} size="md" />
+                    <div className="min-w-0 flex-1 pr-10">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-lg font-semibold text-[var(--color-text)]">
+                          {person.firstName} {person.lastName}
+                        </h3>
+                        {person.deathDate ? <Badge variant="error">Decede</Badge> : <Badge variant="success">Vivant</Badge>}
+                      </div>
+                      {person.birthDate && (
+                        <p className="text-sm text-[var(--color-muted)]">
+                          {new Date(person.birthDate).toLocaleDateString('fr-FR')}
+                          {person.age ? ` · ${person.age} ans` : ''}
+                        </p>
+                      )}
+                      {person.birthPlace && <p className="mt-1 text-sm text-[var(--color-muted)]">{person.birthPlace}</p>}
+                      {person.profession && <p className="mt-3 text-sm font-semibold text-[var(--color-accent)]">{person.profession}</p>}
+                    </div>
                   </div>
-                  {person.birthDate && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(person.birthDate).toLocaleDateString('fr-FR')}
-                      {person.age && ` • ${person.age} ans`}
-                    </p>
-                  )}
-                  {person.birthPlace && (
-                    <p className="text-sm text-gray-500 dark:text-gray-500">{person.birthPlace}</p>
-                  )}
-                  {person.profession && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">{person.profession}</p>
-                  )}
-                </div>
-              </div>
+                </article>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
-
-      <button
-        onClick={() => navigate('/person/new')}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 flex items-center justify-center text-2xl z-50"
-        title="Ajouter une personne (N)"
-      >
-        +
-      </button>
+      </section>
     </>
   );
 }

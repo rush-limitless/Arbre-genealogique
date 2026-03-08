@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildMediaUrl } from '../services/api';
 
 interface Person {
   id: string;
@@ -80,7 +81,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ persons }) => {
                       <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-gray-300">
                         {person.profilePhotoUrl ? (
                           <img
-                            src={`http://localhost:3000${person.profilePhotoUrl}`}
+                            src={buildMediaUrl(person.profilePhotoUrl)}
                             alt={person.firstName}
                             className="w-full h-full object-cover"
                           />

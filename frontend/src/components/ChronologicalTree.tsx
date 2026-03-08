@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildMediaUrl } from '../services/api';
 
 interface Person {
   id: string;
@@ -15,44 +16,44 @@ interface Person {
 
 interface ChronologicalTreeProps {
   persons: Person[];
+  onSelectPerson?: (person: Person) => void;
 }
 
-export const ChronologicalTree: React.FC<ChronologicalTreeProps> = ({ persons }) => {
+const getCardTone = (person: Person) => {
+  if (person.gender === 'MALE') return 'tree-card-male';
+  if (person.gender === 'FEMALE') return 'tree-card-female';
+  return 'tree-card-neutral';
+};
+
+const getYearRange = (person: Person) => {
+  const birth = person.birthDate ? new Date(person.birthDate).getFullYear() : '?';
+  const death = person.deathDate ? new Date(person.deathDate).getFullYear() : '';
+  return death ? `${birth} - ${death}` : `${birth}`;
+};
+
+export const ChronologicalTree: React.FC<ChronologicalTreeProps> = ({ persons, onSelectPerson }) => {
   const navigate = useNavigate();
   const [selectedDecade, setSelectedDecade] = React.useState<number | null>(null);
 
-  // Grouper par décennie de naissance
   const personsByDecade = React.useMemo(() => {
     const grouped = new Map<number, Person[]>();
-    
-    persons.forEach(person => {
+
+    persons.forEach((person) => {
       if (!person.birthDate) return;
-      
       const year = new Date(person.birthDate).getFullYear();
       const decade = Math.floor(year / 10) * 10;
-      
-      if (!grouped.has(decade)) grouped.set(decade, []);
-      grouped.get(decade)!.push(person);
+      if (!grouped.has(decade)) {
+        grouped.set(decade, []);
+      }
+      grouped.get(decade)?.push(person);
     });
 
-    return new Map([...grouped.entries()].sort((a, b) => a[0] - b[0]));
+    return new Map([...grouped.entries()].sort((left, right) => left[0] - right[0]));
   }, [persons]);
 
   const decades = Array.from(personsByDecade.keys());
-  const minDecade = Math.min(...decades);
-  const maxDecade = Math.max(...decades);
-
-  const getBorderColor = (person: Person) => {
-    if (person.gender === 'MALE') return 'border-blue-500';
-    if (person.gender === 'FEMALE') return 'border-pink-500';
-    return 'border-gray-400';
-  };
-
-  const getYearRange = (person: Person) => {
-    const birth = person.birthDate ? new Date(person.birthDate).getFullYear() : '?';
-    const death = person.deathDate ? new Date(person.deathDate).getFullYear() : '';
-    return death ? `${birth} - ${death}` : `${birth}`;
-  };
+  const minDecade = decades.length > 0 ? Math.min(...decades) : null;
+  const maxDecade = decades.length > 0 ? Math.max(...decades) : null;
 
   const getAge = (person: Person) => {
     if (!person.birthDate) return null;
@@ -61,216 +62,163 @@ export const ChronologicalTree: React.FC<ChronologicalTreeProps> = ({ persons })
     return end - birth;
   };
 
+  const openPerson = (person: Person) => {
+    if (onSelectPerson) {
+      onSelectPerson(person);
+      return;
+    }
+    navigate(`/person/${person.id}`);
+  };
+
+  if (decades.length === 0) {
+    return (
+      <div className="tree-empty">
+        <div className="font-display text-3xl text-[var(--color-text)]">Aucune date disponible</div>
+        <p className="tree-meta mt-3 max-w-md text-sm leading-7">Ajoutez des dates de naissance pour faire vivre la vue chronologique.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-full bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex flex-col">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold dark:text-white">📅 Timeline Chronologique</h2>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {minDecade}s - {maxDecade}s ({decades.length} décennies)
+    <div className="tree-surface">
+      <div className="tree-toolbar space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="app-kicker mb-2">Timeline</div>
+            <h2 className="font-display text-2xl text-[var(--color-text)]">Vue chronologique</h2>
+          </div>
+          <div className="tree-chip">
+            {minDecade}s - {maxDecade}s
           </div>
         </div>
 
-        {/* Timeline horizontale */}
-        <div className="relative">
-          <div className="flex items-center gap-2 overflow-x-auto pb-4">
-            {decades.map(decade => {
-              const count = personsByDecade.get(decade)?.length || 0;
-              const isSelected = selectedDecade === decade;
-              
-              return (
-                <button
-                  key={decade}
-                  onClick={() => setSelectedDecade(isSelected ? null : decade)}
-                  className={`flex-shrink-0 px-4 py-3 rounded-lg transition-all ${
-                    isSelected
-                      ? 'bg-blue-500 text-white shadow-lg scale-110'
-                      : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-bold">{decade}s</div>
-                  <div className="text-xs mt-1">{count} pers.</div>
-                </button>
-              );
-            })}
-          </div>
-          
-          {selectedDecade && (
-            <button
-              onClick={() => setSelectedDecade(null)}
-              className="absolute top-0 right-0 px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded text-sm hover:bg-gray-300"
-            >
-              Voir tout
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {decades.map((decade) => {
+            const count = personsByDecade.get(decade)?.length || 0;
+            const selected = selectedDecade === decade;
+            return (
+              <button
+                key={decade}
+                type="button"
+                onClick={() => setSelectedDecade(selected ? null : decade)}
+                className={selected ? 'app-button-primary shrink-0 px-5 py-3' : 'app-button-ghost shrink-0 px-5 py-3'}
+              >
+                <span className="text-sm font-semibold">{decade}s</span>
+                <span className="ml-2 text-xs opacity-80">{count}</span>
+              </button>
+            );
+          })}
+
+          {selectedDecade !== null && (
+            <button type="button" onClick={() => setSelectedDecade(null)} className="app-button-ghost shrink-0 px-5 py-3">
+              Voir toute la periode
             </button>
           )}
         </div>
       </div>
 
-      {/* Contenu */}
-      <div className="flex-1 overflow-auto p-6">
-        {selectedDecade ? (
-          // Vue détaillée d'une décennie
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        {selectedDecade !== null ? (
           <div>
-            <h3 className="text-2xl font-bold mb-6 dark:text-white">
-              Années {selectedDecade}s
-            </h3>
-            
+            <div className="mb-6">
+              <h3 className="font-display text-3xl text-[var(--color-text)]">Annees {selectedDecade}s</h3>
+              <p className="tree-meta mt-2 text-sm">Parcours detaille par annee de naissance.</p>
+            </div>
+
             <div className="space-y-8">
-              {Array.from({ length: 10 }, (_, i) => selectedDecade + i).map(year => {
-                const personsInYear = personsByDecade.get(selectedDecade)?.filter(p => {
-                  const birthYear = new Date(p.birthDate!).getFullYear();
-                  return birthYear === year;
-                }) || [];
+              {Array.from({ length: 10 }, (_, index) => selectedDecade + index).map((year) => {
+                const personsInYear = (personsByDecade.get(selectedDecade) || []).filter(
+                  (person) => new Date(person.birthDate!).getFullYear() === year,
+                );
 
                 if (personsInYear.length === 0) return null;
 
                 return (
-                  <div key={year} className="relative">
-                    {/* Ligne verticale */}
-                    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-blue-300 dark:bg-blue-700"></div>
-                    
+                  <section key={year} className="relative">
+                    <div className="tree-line absolute left-8 top-0 bottom-0 w-px"></div>
                     <div className="flex gap-4">
-                      {/* Année */}
-                      <div className="flex-shrink-0 w-16 text-right">
-                        <div className="inline-block px-3 py-1 bg-blue-500 text-white rounded-full font-bold text-sm">
-                          {year}
-                        </div>
+                      <div className="w-16 shrink-0 text-right">
+                        <div className="tree-chip tree-chip-accent inline-flex">{year}</div>
                       </div>
 
-                      {/* Personnes */}
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {personsInYear.map(person => (
-                          <div
-                            key={person.id}
-                            onClick={() => navigate(`/person/${person.id}`)}
-                            className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 ${getBorderColor(person)} p-4 cursor-pointer hover:shadow-xl transition-shadow relative`}
-                          >
+                      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                        {personsInYear.map((person) => (
+                          <article key={person.id} onClick={() => openPerson(person)} className={`tree-card relative cursor-pointer ${getCardTone(person)}`}>
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <div className="tree-avatar h-12 w-12 shrink-0">
                                 {person.profilePhotoUrl ? (
-                                  <img
-                                    src={`http://localhost:3000${person.profilePhotoUrl}`}
-                                    alt={person.firstName}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <img src={buildMediaUrl(person.profilePhotoUrl)} alt={person.firstName} className="h-full w-full object-cover" />
                                 ) : (
-                                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                                    <circle cx="12" cy="8" r="4" fill="#3B82F6" />
-                                    <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" fill="#8B5CF6" />
-                                  </svg>
+                                  <span className="font-display text-lg text-[var(--color-accent)]">
+                                    {person.firstName?.[0]}
+                                    {person.lastName?.[0]}
+                                  </span>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-bold text-sm dark:text-white truncate">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-semibold text-[var(--color-text)]">
                                   {person.firstName} {person.lastName}
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">
-                                  {getYearRange(person)}
-                                </div>
-                                {getAge(person) && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-500">
-                                    {getAge(person)} ans
-                                  </div>
-                                )}
+                                <div className="tree-meta text-xs">{getYearRange(person)}</div>
+                                {getAge(person) !== null && <div className="tree-meta mt-1 text-xs">{getAge(person)} ans</div>}
                               </div>
                             </div>
 
-                            {person.deathDate && (
-                              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs">✝</span>
-                              </div>
-                            )}
-                          </div>
+                            {person.deathDate && <div className="tree-death-mark absolute -right-2 -top-2 h-7 w-7">D</div>}
+                          </article>
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </section>
                 );
               })}
             </div>
           </div>
         ) : (
-          // Vue globale par décennie
-          <div className="space-y-6">
-            {decades.map(decade => {
+          <div className="space-y-5">
+            {decades.map((decade) => {
               const personsInDecade = personsByDecade.get(decade) || [];
-              
               return (
-                <div
-                  key={decade}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6"
-                >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold dark:text-white">
-                      📅 Années {decade}s
-                    </h3>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {personsInDecade.length} personnes
-                      </span>
-                      <button
-                        onClick={() => setSelectedDecade(decade)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-                      >
-                        Voir détails →
-                      </button>
+                <section key={decade} className="tree-panel p-6">
+                  <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <h3 className="font-display text-2xl text-[var(--color-text)]">Annees {decade}s</h3>
+                      <p className="tree-meta mt-2 text-sm">{personsInDecade.length} personnes enregistrees</p>
                     </div>
+                    <button type="button" onClick={() => setSelectedDecade(decade)} className="app-button-secondary">
+                      Voir le detail
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {personsInDecade.slice(0, 12).map(person => (
-                      <div
-                        key={person.id}
-                        onClick={() => navigate(`/person/${person.id}`)}
-                        className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-3 cursor-pointer hover:shadow-lg transition-shadow border-2 ${getBorderColor(person)} relative`}
-                      >
-                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+                    {personsInDecade.slice(0, 12).map((person) => (
+                      <article key={person.id} onClick={() => openPerson(person)} className={`tree-card relative cursor-pointer p-3 ${getCardTone(person)}`}>
+                        <div className="tree-avatar mx-auto mb-2 h-12 w-12">
                           {person.profilePhotoUrl ? (
-                            <img
-                              src={`http://localhost:3000${person.profilePhotoUrl}`}
-                              alt={person.firstName}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={buildMediaUrl(person.profilePhotoUrl)} alt={person.firstName} className="h-full w-full object-cover" />
                           ) : (
-                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                              <circle cx="12" cy="8" r="4" fill="#3B82F6" />
-                              <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" fill="#8B5CF6" />
-                            </svg>
+                            <span className="font-display text-base text-[var(--color-accent)]">
+                              {person.firstName?.[0]}
+                              {person.lastName?.[0]}
+                            </span>
                           )}
                         </div>
-                        <div className="text-xs font-semibold text-center dark:text-white truncate">
-                          {person.firstName}
-                        </div>
-                        <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+                        <div className="truncate text-center text-xs font-semibold text-[var(--color-text)]">{person.firstName}</div>
+                        <div className="tree-meta text-center text-xs">
                           {person.birthDate ? new Date(person.birthDate).getFullYear() : '?'}
                         </div>
-
-                        {person.deathDate && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">✝</span>
-                          </div>
-                        )}
-                      </div>
+                        {person.deathDate && <div className="tree-death-mark absolute -right-1 -top-1 h-6 w-6">D</div>}
+                      </article>
                     ))}
-                    
+
                     {personsInDecade.length > 12 && (
-                      <div
-                        onClick={() => setSelectedDecade(decade)}
-                        className="bg-gray-100 dark:bg-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-500 flex items-center justify-center"
-                      >
-                        <div className="text-center">
-                          <div className="text-2xl font-bold dark:text-white">
-                            +{personsInDecade.length - 12}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-300">
-                            Voir tout
-                          </div>
-                        </div>
-                      </div>
+                      <button type="button" onClick={() => setSelectedDecade(decade)} className="tree-panel flex min-h-[148px] flex-col items-center justify-center p-4 text-center transition-colors hover:bg-white/35 dark:hover:bg-white/5">
+                        <div className="font-display text-3xl text-[var(--color-text)]">+{personsInDecade.length - 12}</div>
+                        <div className="tree-meta mt-2 text-xs uppercase tracking-[0.16em]">Voir plus</div>
+                      </button>
                     )}
                   </div>
-                </div>
+                </section>
               );
             })}
           </div>
